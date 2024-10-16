@@ -9,9 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.LaunchedEffect
 
 enum class FoodMode {
     Barcode, Auto_Recognition
@@ -22,6 +26,7 @@ fun FoodScanner() {
     var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
     var showDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier
@@ -67,14 +72,22 @@ fun FoodScanner() {
                         placeholder = { Text("식품명") },
                         onValueChange = { inputText = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
                     )
+
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         // 확인 버튼 로직
                         showDialog = false
-                    }) {
+                    },
+                        enabled = inputText.isNotBlank()
+                    ) {
                         Text("확인")
                     }
                 },

@@ -18,13 +18,13 @@ class MainActivity : ComponentActivity() {
             FoodSafeVisionTheme {
                 val foodList = remember { createSampleFoodList() }
 
-                //FoodScanner()
+//                FoodScanner()
 
-                //FoodList()
+//                DateScanner()
 
                 FoodListScreen(
                     foodList = foodList,
-                    onAddFood = {
+                    onCheckFood = {
                         // FoodScanner를 사용하여 새 음식 추가 로직
                     },
                     onMenuClick = {
