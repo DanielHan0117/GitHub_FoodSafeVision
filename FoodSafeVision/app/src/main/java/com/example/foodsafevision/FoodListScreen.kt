@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -90,7 +93,15 @@ fun FoodListScreen(
                 tags = tags,
                 selectedTag = selectedTag,
                 onTagSelected = { tag -> selectedTag = tag },
-                onAddTag = { showDialog = true }
+                onAddTag = { showDialog = true },
+                onEditTag = { oldTag, newTag ->
+                    tags = tags.map { if (it == oldTag) newTag else it }
+                    if (selectedTag == oldTag) selectedTag = newTag
+                },
+                onDeleteTag = { tagToDelete ->
+                    tags = tags.filter { it != tagToDelete }
+                    if (selectedTag == tagToDelete) selectedTag = tags.firstOrNull() ?: ""
+                }
             )
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
@@ -160,8 +171,14 @@ fun TagSection(
     tags: List<String>,
     selectedTag: String,
     onTagSelected: (String) -> Unit,
-    onAddTag: () -> Unit
+    onAddTag: () -> Unit,
+    onEditTag: (String, String) -> Unit,
+    onDeleteTag: (String) -> Unit
 ) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editingTag by remember { mutableStateOf("") }
+    var editedTagName by remember { mutableStateOf("") }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,9 +191,16 @@ fun TagSection(
                 .horizontalScroll(rememberScrollState())
         ) {
             tags.forEach { tag ->
-                Tag(tag, isSelected = tag == selectedTag) {
-                    onTagSelected(tag)
-                }
+                Tag(
+                    text = tag,
+                    isSelected = tag == selectedTag,
+                    onClick = { onTagSelected(tag) },
+                    onLongClick = {
+                        editingTag = tag
+                        editedTagName = tag
+                        showEditDialog = true
+                    }
+                )
             }
         }
         Box(
@@ -195,21 +219,78 @@ fun TagSection(
             )
         }
     }
+
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "태그 설정",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    IconButton(onClick = {
+                        onDeleteTag(editingTag)
+                        showEditDialog = false
+                    }) {
+                        Icon(Icons.Default.Delete, contentDescription = "삭제")
+                    }
+                }
+            },
+            text = {
+                Column {
+                    TextField(
+                        value = editedTagName,
+                        onValueChange = { editedTagName = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onEditTag(editingTag, editedTagName)
+                    showEditDialog = false
+                }) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun Tag(text: String, isSelected: Boolean, onSelected: () -> Unit) {
+fun Tag(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .padding(end = 8.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background( if (isSelected) Color(0xFFDCDCDC) else Color.White )
+            .background(if (isSelected) Color(0xFFDCDCDC) else Color.White)
             .border(
                 width = 1.dp,
                 color = Color.LightGray,
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable(onClick = onSelected)
+            .clickable(onClick = onClick)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongClick() },
+                    onTap = { onClick() }
+                )
+            }
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
