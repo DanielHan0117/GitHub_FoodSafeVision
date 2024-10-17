@@ -392,6 +392,7 @@ fun EditFoodDialog(
     var editedExpiryDate by remember { mutableStateOf(food.expiryDate.toString()) }
     var editedQuantity by remember { mutableStateOf(food.quantity.toString()) }
     var editedTag by remember { mutableStateOf(food.tag) }
+    var expanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -438,40 +439,33 @@ fun EditFoodDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 ExposedDropdownMenuBox(
-                    expanded = false,
-                    onExpandedChange = { },
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
                 ) {
                     TextField(
                         value = editedTag,
                         onValueChange = { },
                         readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
-                        modifier = Modifier.menuAnchor()
+                        leadingIcon = {
+                            Icon(Icons.Default.List, contentDescription = "태그")
+                        },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
                     )
-                    ExposedDropdownMenuBox(
-                        expanded = false,
-                        onExpandedChange = { },
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
                     ) {
-                        TextField(
-                            value = editedTag,
-                            onValueChange = { },
-                            readOnly = true,
-                            leadingIcon = {
-                                Icon(Icons.Default.List, contentDescription = "태그")
-                            },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
-                            modifier = Modifier.menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = false,
-                            onDismissRequest = { },
-                        ) {
-                            tags.forEach { tag ->
-                                DropdownMenuItem(
-                                    text = { Text(tag) },
-                                    onClick = { editedTag = tag }
-                                )
-                            }
+                        tags.forEach { tag ->
+                            DropdownMenuItem(
+                                text = { Text(tag) },
+                                onClick = {
+                                    editedTag = tag
+                                    expanded = false
+                                }
+                            )
                         }
                     }
                 }
