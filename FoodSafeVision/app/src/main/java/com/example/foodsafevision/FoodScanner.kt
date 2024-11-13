@@ -1,5 +1,7 @@
 package com.example.foodsafevision
 
+import android.graphics.drawable.BitmapDrawable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +18,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.core.graphics.drawable.toBitmap
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
 
 enum class FoodMode {
     Barcode, Auto_Recognition
@@ -27,6 +37,20 @@ fun FoodScanner() {
     var showDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+
+    var showBarcodeResult by remember { mutableStateOf(false) } // 바코드 결과 팝업 상태
+    var barcodeValue by remember { mutableStateOf("") } // 바코드 값 저장
+    val context = LocalContext.current
+    // 바코드 스캐너 초기화
+    val options = remember {
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_ALL_FORMATS
+            )
+            .build()
+    }
+    val scanner = remember { BarcodeScanning.getClient(options) }
+    // ML Kit 바코드 스캐너 설정
 
     Column(
         modifier = Modifier
@@ -102,6 +126,19 @@ fun FoodScanner() {
             )
         }
 
+        if (showBarcodeResult) {
+            AlertDialog(
+                onDismissRequest = { showBarcodeResult = false },
+                title = { Text("바코드 스캔 결과") },
+                text = { Text("일련번호: $barcodeValue") },
+                confirmButton = {
+                    TextButton(onClick = { showBarcodeResult = false }) {
+                        Text("확인")
+                    }
+                }
+            )
+        }
+
         // 카메라 프리뷰 영역
         Box(
             modifier = Modifier
@@ -109,8 +146,41 @@ fun FoodScanner() {
                 .fillMaxWidth()
                 .background(Color.Green)
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.test),
+                contentDescription = "Test Image",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+                        // 이미지를 비트맵으로 변환
+                        val bitmap = (context.getDrawable(R.drawable.test) as BitmapDrawable).bitmap
+
+                        // ML Kit 바코드 스캐너 초기화
+                        val scanner = BarcodeScanning.getClient()
+
+                        // 이미지 분석
+                        val image = InputImage.fromBitmap(bitmap, 0)
+                        scanner.process(image)
+                            .addOnSuccessListener { barcodes ->
+                                if (barcodes.isNotEmpty()) {
+                                    barcodeValue = barcodes[0].rawValue ?: "바코드를 찾을 수 없습니다"
+                                    showBarcodeResult = true
+                                } else {
+                                    barcodeValue = "바코드를 찾을 수 없습니다"
+                                    showBarcodeResult = true
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                barcodeValue = "스캔 실패: ${e.message}"
+                                showBarcodeResult = true
+                            }
+                    }
+            )
             // 여기에 실제 카메라 프리뷰 구현
         }
+
+
 
         // 하단 버튼 영역
         Row(
