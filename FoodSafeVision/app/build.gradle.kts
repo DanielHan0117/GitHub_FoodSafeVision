@@ -62,6 +62,8 @@ dependencies {
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
     implementation(libs.vision.common)
+    implementation(libs.play.services.mlkit.barcode.scanning)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -74,7 +76,11 @@ dependencies {
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // CameraX 라이브러리들 (카메라 사용을 위해 필요)
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.0")
+    implementation("androidx.camera:camera-lifecycle:1.3.0")
+    implementation("androidx.camera:camera-view:1.3.0")
+
+    implementation("com.google.mlkit:object-detection-custom:17.0.0")
+    implementation("org.tensorflow:tensorflow-lite:2.9.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
 }
