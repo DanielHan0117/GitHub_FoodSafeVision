@@ -83,4 +83,10 @@ dependencies {
     implementation("com.google.mlkit:object-detection-custom:17.0.0")
     implementation("org.tensorflow:tensorflow-lite:2.9.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
+
+    implementation("org.tensorflow:tensorflow-lite:2.5.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.3.0")
+
+    implementation("org.pytorch:pytorch_android_lite:1.10.0")
+    implementation("org.pytorch:pytorch_android_torchvision:1.10.0")
 }

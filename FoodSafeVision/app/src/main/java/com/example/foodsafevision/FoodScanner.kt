@@ -1,5 +1,8 @@
 package com.example.foodsafevision
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
@@ -27,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+//import com.google.android.datatransport.runtime.dagger.Module
 import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -34,11 +38,20 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
+import java.io.File
+import java.io.FileOutputStream
+import org.pytorch.LiteModuleLoader
+import org.pytorch.Module
+import org.pytorch.IValue
+import org.pytorch.Tensor
+import org.pytorch.torchvision.TensorImageUtils
+import android.graphics.BitmapFactory
 
 enum class FoodMode {
     Barcode, Auto_Recognition
 }
 
+@SuppressLint("RememberReturnType")
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun FoodScanner(
@@ -89,6 +102,81 @@ fun FoodScanner(
     var detectedObjectName by remember { mutableStateOf("") }
     var showBarcodeResult by remember { mutableStateOf(false) }
     var barcodeValue by remember { mutableStateOf("") }
+
+    val module = LiteModuleLoader.load(assetFilePath(context, "tf_mobilenetv3_small_100-37f49e2b.pth"))
+    val model = remember {
+        val assetManager = context.assets
+        val modelFile = File(context.filesDir, "tf_mobilenetv3_small_100-37f49e2b.pth")
+        if (!modelFile.exists()) {
+            assetManager.open("models/tf_mobilenetv3_small_100-37f49e2b.pth").use { input ->
+                FileOutputStream(modelFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+        Module.load(modelFile.absolutePath)
+    }
+
+    val outputTensor = model.forward(IValue.from(inputTensor)).toTensor()
+    val scores = outputTensor.dataAsFloatArray
+
+    val maxScoreIndex = scores.indices.maxByOrNull { scores[it] } ?: -1
+    if (maxScoreIndex != -1) {
+        detectedObjectName = classes[maxScoreIndex]
+        showObjectDetectionDialog = true
+        shouldAnalyzeImage = false
+        onObjectDetected()
+    }
+
+    // PyTorch 모델 로드
+    val model = remember {
+        Module.load(assetFilePath(context, "tf_mobilenetv3_small_100-37f49e2b.pth"))
+    }
+
+// 클래스 레이블 로드
+    val classes = remember {
+        context.assets.open("imagenet_classes.txt").bufferedReader().readLines()
+    }
+
+// 이미지 분석 로직
+    imageAnalysis.setAnalyzer(
+        ContextCompat.getMainExecutor(context)
+    ) { imageProxy ->
+        when (currentMode) {
+            FoodMode.Barcode -> {
+                // 기존 바코드 스캔 로직
+            }
+            FoodMode.Auto_Recognition -> {
+                if (shouldAnalyzeImage) {
+                    val bitmap = imageProxy.toBitmap()
+                    val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
+
+                    val inputTensor = TensorImageUtils.bitmapToFloat32Tensor(
+                        resizedBitmap,
+                        TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
+                        TensorImageUtils.TORCHVISION_NORM_STD_RGB
+                    )
+
+                    val outputTensor = model.forward(IValue.from(inputTensor)).toTensor()
+                    val scores = outputTensor.dataAsFloatArray
+
+                    val maxScoreIndex = scores.indices.maxByOrNull { scores[it] } ?: -1
+                    if (maxScoreIndex != -1) {
+                        detectedObjectName = classes[maxScoreIndex]
+                        showObjectDetectionDialog = true
+                        shouldAnalyzeImage = false
+                        onObjectDetected()
+                    }
+                }
+                imageProxy.close()
+            }
+        }
+    }
+
+// 클래스 레이블 로드
+    val classes = remember {
+        context.assets.open("imagenet_classes.txt").bufferedReader().readLines()
+    }
 
     Column(
         modifier = Modifier
@@ -221,10 +309,29 @@ fun FoodScanner(
                             }
                             FoodMode.Auto_Recognition -> {
                                 if (shouldAnalyzeImage) {
-                                    // 객체 인식 기능 구현
-                                } else {
-                                    imageProxy.close()
+                                    val bitmap = imageProxy.toBitmap()
+                                    val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
+
+                                    val inputTensor = TensorImageUtils.bitmapToFloat32Tensor(
+                                        resizedBitmap,
+                                        TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
+                                        TensorImageUtils.TORCHVISION_NORM_STD_RGB
+                                    )
+
+                                    val outputTensor = model.forward(IValue.from(inputTensor)).toTensor()
+                                    val scores = outputTensor.dataAsFloatArray
+
+                                    val maxScore = scores.maxOrNull() ?: 0f
+                                    val maxScoreIndex = scores.indexOf(maxScore)
+
+                                    if (maxScore > 0.5f) {  // 임계값 설정
+                                        detectedObjectName = classes[maxScoreIndex]
+                                        showObjectDetectionDialog = true
+                                        shouldAnalyzeImage = false
+                                        onObjectDetected()
+                                    }
                                 }
+                                imageProxy.close()
                             }
                         }
                     }
@@ -352,4 +459,17 @@ fun ModeButton(
             )
         }
     }
+}
+
+private fun assetFilePath(context: Context, assetName: String): String {
+    val file = File(context.filesDir, assetName)
+    if (file.exists() && file.length() > 0) {
+        return file.absolutePath
+    }
+    context.assets.open(assetName).use { input ->
+        FileOutputStream(file).use { output ->
+            input.copyTo(output)
+        }
+    }
+    return file.absolutePath
 }
