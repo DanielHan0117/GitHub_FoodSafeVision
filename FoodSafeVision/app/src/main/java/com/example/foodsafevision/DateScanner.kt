@@ -12,12 +12,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun DateScanner() {
     var showDialog by remember { mutableStateOf(false) }
     var inputDate by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier
@@ -61,16 +64,28 @@ fun DateScanner() {
                     TextField(
                         value = inputDate,
                         placeholder = { Text("YYMMDD") },
-                        onValueChange = { inputDate = it },
+                        onValueChange = {
+                            if (it.length <= 6) {
+                                inputDate = it
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
                     )
+
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         // 확인 버튼 로직
                         showDialog = false
-                    }) {
+                    },
+                        enabled = inputDate.isNotBlank()
+                    ) {
                         Text("확인")
                     }
                 },
