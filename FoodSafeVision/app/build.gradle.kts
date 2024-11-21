@@ -76,6 +76,9 @@ dependencies {
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // CameraX 라이브러리들 (카메라 사용을 위해 필요)
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.0")
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
@@ -83,10 +86,4 @@ dependencies {
     implementation("com.google.mlkit:object-detection-custom:17.0.0")
     implementation("org.tensorflow:tensorflow-lite:2.9.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
-
-    implementation("org.tensorflow:tensorflow-lite:2.5.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.3.0")
-
-    implementation("org.pytorch:pytorch_android_lite:1.10.0")
-    implementation("org.pytorch:pytorch_android_torchvision:1.10.0")
 }
