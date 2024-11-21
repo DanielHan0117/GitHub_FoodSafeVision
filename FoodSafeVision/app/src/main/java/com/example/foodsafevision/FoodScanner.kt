@@ -33,6 +33,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.foodsafevision.data.database.BarcodeRepository
 import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -48,53 +49,87 @@ enum class FoodMode {
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun FoodScanner(
-    onBarcodeDetected: () -> Unit = {},  // 바코드 감지 콜백
-    onObjectDetected: () -> Unit = {}    // 객체 감지 콜백
+    onBarcodeDetected: (String) -> Unit,  // 바코드 감지 콜백
+    barcodeRepository: BarcodeRepository,
+    onObjectDetected: (String) -> Unit = {}    // 객체 감지 콜백
     ) {
-            var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
-            var showDialog by remember { mutableStateOf(false) }
-            var inputText by remember { mutableStateOf("") }
-            val focusRequester = remember { FocusRequester() }
+        var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
+        var showDialog by remember { mutableStateOf(false) }
+        var inputText by remember { mutableStateOf("") }
+        val focusRequester = remember { FocusRequester() }
 
-            // 바코드 스캐너 초기화
-            val options = remember {
-                BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(
-                        Barcode.FORMAT_ALL_FORMATS
-                    )
-                    .build()
+        // 바코드 스캐너 초기화
+        val options = remember {
+            BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(
+                    Barcode.FORMAT_ALL_FORMATS
+                )
+                .build()
+        }
+        val scanner = remember { BarcodeScanning.getClient(options) }
+        // ML Kit 바코드 스캐너 설정
+
+        val context = LocalContext.current
+        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+        val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+        val previewView = remember { PreviewView(context) }
+        var shouldAnalyzeImage by remember { mutableStateOf(false) }
+
+        // MobileNet V3 모델 설정
+        val localModel = remember {
+            LocalModel.Builder()
+                .setAssetFilePath("mobilenet_v3_1.0_224_float.tflite")
+                .build()
+        }
+
+        // 객체 감지기 설정
+        val customObjectDetector = remember {
+            val options = CustomObjectDetectorOptions.Builder(localModel)
+                .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
+                .enableClassification()
+                .setClassificationConfidenceThreshold(0.5f)
+                .setMaxPerObjectLabelCount(3)
+                .build()
+            ObjectDetection.getClient(options)
+        }
+
+        var showObjectDetectionDialog by remember { mutableStateOf(false) }
+        var detectedObjectName by remember { mutableStateOf("") }
+        var showBarcodeResult by remember { mutableStateOf(false) }
+        var barcodeValue by remember { mutableStateOf("") }
+        var productName by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(barcodeValue) {
+        if (barcodeValue.isNotEmpty()) {
+            productName = barcodeRepository.getProductName(barcodeValue)
+        }
+    }
+
+    if (showBarcodeResult) {
+        AlertDialog(
+            onDismissRequest = { showBarcodeResult = false },
+            title = { Text("바코드 스캔 결과") },
+            text = {
+                if (productName != null) {
+                    Text("식품명: $productName")
+                } else {
+                    Text("등록되지 않은 바코드입니다: $barcodeValue")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBarcodeResult = false
+                        productName?.let { detectedName ->
+                            onBarcodeDetected(detectedName)
+                        }
+                    }
+                ) {
+                    Text("확인")
+                }
             }
-            val scanner = remember { BarcodeScanning.getClient(options) }
-            // ML Kit 바코드 스캐너 설정
-
-            val context = LocalContext.current
-            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-            val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-            val previewView = remember { PreviewView(context) }
-            var shouldAnalyzeImage by remember { mutableStateOf(false) }
-
-            // MobileNet V3 모델 설정
-            val localModel = remember {
-                LocalModel.Builder()
-                    .setAssetFilePath("mobilenet_v3_1.0_224_float.tflite")
-                    .build()
-            }
-
-            // 객체 감지기 설정
-            val customObjectDetector = remember {
-                val options = CustomObjectDetectorOptions.Builder(localModel)
-                    .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
-                    .enableClassification()
-                    .setClassificationConfidenceThreshold(0.5f)
-                    .setMaxPerObjectLabelCount(3)
-                    .build()
-                ObjectDetection.getClient(options)
-            }
-
-            var showObjectDetectionDialog by remember { mutableStateOf(false) }
-            var detectedObjectName by remember { mutableStateOf("") }
-            var showBarcodeResult by remember { mutableStateOf(false) }
-            var barcodeValue by remember { mutableStateOf("") }
+        )
+    }
 
             Column(
                 modifier = Modifier
@@ -217,7 +252,10 @@ fun FoodScanner(
                                                         // 바코드 값 저장 및 다이얼로그 표시
                                                         barcodeValue = barcodes[0].rawValue ?: "알 수 없음"
                                                         showBarcodeResult = true
-                                                        onBarcodeDetected()
+                                                        // 바코드에 해당하는 제품명이 있을 때만 호출
+                                                        productName?.let { name ->
+                                                            onBarcodeDetected(name)
+                                                        }
                                                     }
                                                 }
                                                 .addOnCompleteListener {
@@ -252,23 +290,32 @@ fun FoodScanner(
                         }
                     }
 
-                    if (showBarcodeResult) {
-                        AlertDialog(
-                            onDismissRequest = { showBarcodeResult = false },
-                            title = { Text("바코드 스캔 결과") },
-                            text = { Text("바코드 번호: $barcodeValue") },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        showBarcodeResult = false
-                                        onBarcodeDetected()  // DateScanner로 이동
-                                    }
-                                ) {
-                                    Text("확인")
-                                }
+                if (showBarcodeResult) {
+                    AlertDialog(
+                        onDismissRequest = { showBarcodeResult = false },
+                        title = { Text("바코드 스캔 결과") },
+                        text = {
+                            if (productName != null) {
+                                Text("식품명: $productName")
+                            } else {
+                                Text("등록되지 않은 바코드입니다: $barcodeValue")
                             }
-                        )
-                    }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showBarcodeResult = false
+                                    // 바코드에 해당하는 제품명이 있을 때만 호출
+                                    productName?.let { name ->
+                                        onBarcodeDetected(name)
+                                    }
+                                }
+                            ) {
+                                Text("확인")
+                            }
+                        }
+                    )
+                }
 
                     if (showObjectDetectionDialog) {
                         AlertDialog(

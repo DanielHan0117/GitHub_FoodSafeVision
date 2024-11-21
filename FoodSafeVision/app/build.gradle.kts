@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -47,6 +48,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    // Room 스키마 위치 지정
+    sourceSets {
+        getByName("debug") {
+            kotlin.srcDir("build/generated/ksp/debug/kotlin")
+        }
+        getByName("release") {
+            kotlin.srcDir("build/generated/ksp/release/kotlin")
+        }
+    }
 }
 
 dependencies {
@@ -86,4 +96,14 @@ dependencies {
     implementation("com.google.mlkit:object-detection-custom:17.0.0")
     implementation("org.tensorflow:tensorflow-lite:2.9.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
+
+    // Room
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    annotationProcessor("androidx.room:room-compiler:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
