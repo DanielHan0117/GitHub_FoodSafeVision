@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = "foodScanner"
+                    startDestination = "registerFood"
                 ) {
                     composable("foodListScreen") {
                         FoodListScreen(
@@ -49,6 +49,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("dateScanner") {
                         DateScanner()
+                    }
+                    composable("registerFood"){
+                        RegisterFood()
                     }
                 }
             }
