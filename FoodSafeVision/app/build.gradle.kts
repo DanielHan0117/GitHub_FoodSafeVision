@@ -19,6 +19,13 @@ android {
             useSupportLibrary = true
         }
     }
+    dependencies {
+        // Material Design Compose 라이브러리 추가
+        implementation ("androidx.compose.material:material:1.5.3") // Compose 버전은 최신 버전으로 변경 가능
+        // Compose UI 기본 라이브러리
+        implementation ("androidx.compose.ui:ui:1.5.3")
+        // 기타 Compose 의존성...
+    }
 
     buildTypes {
         release {
