@@ -13,32 +13,54 @@ import android.app.DatePickerDialog
 import android.widget.DatePicker
 import androidx.compose.ui.platform.LocalContext
 import java.util.*
+import android.content.Context // Android Context
+import androidx.compose.ui.platform.LocalContext // Jetpack Compose Local Context
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Text
+import java.text.SimpleDateFormat
+
 
 @Composable
 fun RegisterFood() {
     // 상태 변수들
     var productName by remember { mutableStateOf("") }
-    var selectedDate1 by remember { mutableStateOf(Calendar.getInstance().time) }
-    var selectedDate2 by remember { mutableStateOf(Calendar.getInstance().time) }
+    var selectedDate1 by remember { mutableStateOf<Date?>(null) }
+    var selectedDate2 by remember { mutableStateOf<Date?>(null) }
     var selectedCategory by remember { mutableStateOf("음식") }
     var quantity by remember { mutableStateOf(0) }
     var price by remember { mutableStateOf(0) }
-    var barcode by remember { mutableStateOf("") }
-
-    val categories = listOf("음식", "음료", "약품", "기타")
+    //var barcode by remember { mutableStateOf("") }
+    val context = LocalContext.current
     val calendar = Calendar.getInstance()
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+    var barcode by remember { mutableStateOf("1234567890") }  // 바코드 자동 설정
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // 바코드 번호 입력 (버튼으로 대체 가능)
+    // 앱 시작 시 자동으로 등록 날짜를 오늘 날짜로 설정
+    selectedDate1 = remember { Calendar.getInstance().time }
+
+    val categories = listOf("과일", "냉장", "미분류")
+
+
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
+
+        // < 제품 추가 버튼
         Button(
             onClick = {
-                // 바코드 스캔 로직 추가
-                barcode = "1234567890"  // 예시로 바코드 번호 설정
+                // 전단계로 이동하는 기능은 나중에 구현
+                // 버튼 클릭 시 아무 동작도 하지 않음
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.wrapContentWidth()
         ) {
-            Text("바코드 번호: $barcode")
+            Text("< 제품 추가")
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 바코드 번호 자동 표시
+        Text("바코드 번호: $barcode")
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -58,44 +80,83 @@ fun RegisterFood() {
                 val newDate = Calendar.getInstance() // 날짜 선택 로직
                 selectedDate1 = newDate.time
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = Color.Yellow,  // 버튼 배경색을 노란색으로 설정
+                contentColor = Color.White    // 버튼 텍스트 색상을 검은색으로 설정
+            )
         ) {
-            Text("등록 날짜: ${selectedDate1.toLocaleString().split(" ")[0]}")
+            Text(
+                text = "등록 날짜: ${
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate1)
+                }"
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // 유통기한 선택
+        val context = LocalContext.current
+
         Button(
             onClick = {
-                val newDate = Calendar.getInstance() // 날짜 선택 로직
-                selectedDate2 = newDate.time
+                // DatePickerDialog 생성
+                val datePicker = DatePickerDialog(
+                    context, // LocalContext로 가져온 context 사용
+                    { _: DatePicker, year: Int, month: Int, day: Int ->
+                        calendar.set(year, month, day)
+                        selectedDate2 = calendar.time
+                    },
+                    calendar.get(Calendar.YEAR),
+                    calendar.get(Calendar.MONTH),
+                    calendar.get(Calendar.DAY_OF_MONTH)
+                )
+                datePicker.show()
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("유통기한: ${selectedDate2.toLocaleString().split(" ")[0]}")
+            Text(
+                text = "유통기한: ${
+                    selectedDate2?.let {
+                        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(it)
+                    } ?: "선택 안 됨"
+                }")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // 카테고리 선택
-        DropdownMenu(
-            expanded = true,
-            onDismissRequest = { /* 처리 로직 */ }
-        ) {
-            categories.forEach { category ->
-                DropdownMenuItem(onClick = { selectedCategory = category }) {
-                    Text(category)
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { isDropdownExpanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("카테고리: $selectedCategory")
+            }
+
+            DropdownMenu(
+                expanded = isDropdownExpanded,
+                onDismissRequest = { isDropdownExpanded = false }
+            ) {
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        onClick = {
+                            selectedCategory = category
+                            isDropdownExpanded = false
+                        }
+                    ) {
+                        Text(category)
+                    }
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
 
         // 수량 입력
         OutlinedTextField(
-            value = quantity.toString(),
-            onValueChange = { quantity = it.toIntOrNull() ?: 0 },
+            value = productName, // 상태 변수 사용
+            onValueChange = { productName = it }, // 입력값을 상태로 저장
             label = { Text("수량") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -116,32 +177,6 @@ fun RegisterFood() {
 }
 
 
-
-
-@Composable
-fun DropdownMenuItem(onClick: () -> Unit, content: @Composable () -> Unit) {
-
-}
-
-@Composable
-fun DropdownMenu(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
-
-}
-
-@Composable
-fun OutlinedTextField(value: TextFieldValue, onValueChange: () -> Unit, label: () -> Unit, modifier: Modifier) {
-
-}
-
-@Composable
-fun Text(s: String, style: Any) {
-
-}
-
-@Composable
-fun Button(onClick: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
-
-}
 
 @Preview(showBackground = true)
 @Composable
