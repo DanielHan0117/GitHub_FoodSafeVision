@@ -1,6 +1,8 @@
 package com.example.foodsafevision
 
 import android.graphics.drawable.BitmapDrawable
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.foundation.Image
 import android.util.Log
 import androidx.annotation.OptIn
@@ -78,17 +80,17 @@ fun FoodScanner(
         // MobileNet V3 모델 설정
         val localModel = remember {
             LocalModel.Builder()
-                .setAssetFilePath("mobilenet_v3_1.0_224_float.tflite")
+                .setAssetFilePath("mobilenet_v3_small.tflite")
                 .build()
         }
 
         // 객체 감지기 설정
         val customObjectDetector = remember {
             val options = CustomObjectDetectorOptions.Builder(localModel)
-                .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
+                .setDetectorMode(CustomObjectDetectorOptions.SINGLE_IMAGE_MODE)
                 .enableClassification()
-                .setClassificationConfidenceThreshold(0.5f)
-                .setMaxPerObjectLabelCount(3)
+                .setClassificationConfidenceThreshold(0.3f)  // 임계값을 낮춰서 더 많은 객체 감지
+                .setMaxPerObjectLabelCount(5)
                 .build()
             ObjectDetection.getClient(options)
         }
@@ -99,37 +101,11 @@ fun FoodScanner(
         var barcodeValue by remember { mutableStateOf("") }
         var productName by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(barcodeValue) {
-        if (barcodeValue.isNotEmpty()) {
-            productName = barcodeRepository.getProductName(barcodeValue)
-        }
-    }
-
-    if (showBarcodeResult) {
-        AlertDialog(
-            onDismissRequest = { showBarcodeResult = false },
-            title = { Text("바코드 스캔 결과") },
-            text = {
-                if (productName != null) {
-                    Text("식품명: $productName")
-                } else {
-                    Text("등록되지 않은 바코드입니다: $barcodeValue")
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showBarcodeResult = false
-                        productName?.let { detectedName ->
-                            onBarcodeDetected(detectedName)
-                        }
-                    }
-                ) {
-                    Text("확인")
-                }
+        LaunchedEffect(barcodeValue) {
+            if (barcodeValue.isNotEmpty()) {
+                productName = barcodeRepository.getProductName(barcodeValue)
             }
-        )
-    }
+        }
 
             Column(
                 modifier = Modifier
@@ -234,81 +210,135 @@ fun FoodScanner(
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                 .build()
 
+                            var isProcessing = false
+
                             imageAnalysis.setAnalyzer(
                                 ContextCompat.getMainExecutor(context)
                             ) { imageProxy ->
                                 when (currentMode) {
                                     FoodMode.Barcode -> {
-                                        val mediaImage = imageProxy.image
-                                        if (mediaImage != null) {
-                                            val image = InputImage.fromMediaImage(
-                                                mediaImage,
-                                                imageProxy.imageInfo.rotationDegrees
-                                            )
+                                        if (!isProcessing) {
+                                            val mediaImage = imageProxy.image
+                                            if (mediaImage != null) {
+                                                isProcessing = true
+                                                val image = InputImage.fromMediaImage(
+                                                    mediaImage,
+                                                    imageProxy.imageInfo.rotationDegrees
+                                                )
 
-                                            scanner.process(image)
-                                                .addOnSuccessListener { barcodes ->
-                                                    if (barcodes.isNotEmpty()) {
-                                                        // 바코드 값 저장 및 다이얼로그 표시
-                                                        barcodeValue = barcodes[0].rawValue ?: "알 수 없음"
-                                                        showBarcodeResult = true
-                                                        // 바코드에 해당하는 제품명이 있을 때만 호출
-                                                        productName?.let { name ->
-                                                            onBarcodeDetected(name)
+                                                scanner.process(image)
+                                                    .addOnSuccessListener { barcodes ->
+                                                        if (barcodes.isNotEmpty()) {
+                                                            barcodeValue =
+                                                                barcodes[0].rawValue ?: "알 수 없음"
+                                                            showBarcodeResult = true
+
+                                                            productName?.let { name ->
+                                                                onBarcodeDetected(name)
+                                                            }
+
+                                                            Handler(Looper.getMainLooper()).postDelayed(
+                                                                {
+                                                                    isProcessing = false
+                                                                },
+                                                                3000
+                                                            )
+                                                        } else {
+                                                            isProcessing = false
                                                         }
                                                     }
-                                                }
-                                                .addOnCompleteListener {
-                                                    imageProxy.close()
-                                                }
-                                        }
-                                    }
-                                        FoodMode.Auto_Recognition -> {
-                                        if (shouldAnalyzeImage) {
-                                            // 객체 인식 기능 구현
+                                                    .addOnFailureListener {
+                                                        isProcessing = false
+                                                    }
+                                                    .addOnCompleteListener {
+                                                        imageProxy.close()
+                                                    }
+                                            } else {
+                                                imageProxy.close()
+                                            }
                                         } else {
                                             imageProxy.close()
                                         }
                                     }
+                                    // 객체 감지 부분 구현
+                                    FoodMode.Auto_Recognition -> {
+                                        if (shouldAnalyzeImage) {
+                                            val mediaImage = imageProxy.image
+                                            if (mediaImage != null) {
+                                                val image = InputImage.fromMediaImage(
+                                                    mediaImage,
+                                                    imageProxy.imageInfo.rotationDegrees
+                                                )
+
+                                                customObjectDetector.process(image)
+                                                    .addOnSuccessListener { detectedObjects ->
+                                                        if (detectedObjects.isNotEmpty()) {
+                                                            // 가장 높은 신뢰도를 가진 객체 찾기
+                                                            val highestConfidenceObject = detectedObjects.maxByOrNull {
+                                                                it.labels.maxOfOrNull { label -> label.confidence } ?: 0f
+                                                            }
+
+                                                            highestConfidenceObject?.labels?.firstOrNull()?.let { label ->
+                                                                detectedObjectName = label.text
+                                                                showObjectDetectionDialog = true
+                                                            } ?: run {
+                                                                detectedObjectName = "객체 인식 실패"
+                                                                showObjectDetectionDialog = true
+                                                            }
+                                                        } else {
+                                                            detectedObjectName = "객체 인식 실패"
+                                                            showObjectDetectionDialog = true
+                                                        }
+                                                        shouldAnalyzeImage = false
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        Log.e("ObjectDetection", "객체 감지 실패", e)
+                                                        detectedObjectName = "객체 인식 실패"
+                                                        showObjectDetectionDialog = true
+                                                        shouldAnalyzeImage = false
+                                                    }
+                                                    .addOnCompleteListener {
+                                                        imageProxy.close()
+                                                    }
+                                            } else {
+                                                imageProxy.close()
+                                                shouldAnalyzeImage = false
+                                            }
+                                        } else {
+                                            imageProxy.close()
+                                        }
                                     }
                                 }
-
-                                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-                                try {
-                                    cameraProvider.unbindAll()
-                                    cameraProvider.bindToLifecycle(
-                                        lifecycleOwner,
-                                        cameraSelector,
-                                        preview,
-                                        imageAnalysis
-                                    )
-                                } catch (exc: Exception) {
-                                    Log.e("CameraPreview", "바인딩 실패", exc)
-                                }
-                            }, ContextCompat.getMainExecutor(context))
-                        }
-                    }
-
-                if (showBarcodeResult) {
-                    AlertDialog(
-                        onDismissRequest = { showBarcodeResult = false },
-                        title = { Text("바코드 스캔 결과") },
-                        text = {
-                            if (productName != null) {
-                                Text("식품명: $productName")
-                            } else {
-                                Text("등록되지 않은 바코드입니다: $barcodeValue")
                             }
+
+                            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                            try {
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview,
+                                    imageAnalysis
+                                )
+                            } catch (exc: Exception) {
+                                Log.e("CameraPreview", "바인딩 실패", exc)
+                            }
+                        }, ContextCompat.getMainExecutor(context))
+                    }
+                }
+
+                if (showObjectDetectionDialog) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showObjectDetectionDialog = false
                         },
+                        title = { Text("객체 감지 결과") },
+                        text = { Text("감지된 객체: $detectedObjectName") },
                         confirmButton = {
                             TextButton(
                                 onClick = {
-                                    showBarcodeResult = false
-                                    // 바코드에 해당하는 제품명이 있을 때만 호출
-                                    productName?.let { name ->
-                                        onBarcodeDetected(name)
-                                    }
+                                    showObjectDetectionDialog = false
                                 }
                             ) {
                                 Text("확인")
@@ -317,67 +347,48 @@ fun FoodScanner(
                     )
                 }
 
-                    if (showObjectDetectionDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                showObjectDetectionDialog = false
-                            },
-                            title = { Text("객체 감지 결과") },
-                            text = { Text("감지된 객체: $detectedObjectName") },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        showObjectDetectionDialog = false
-                                    }
-                                ) {
-                                    Text("확인")
+                // 하단 버튼 영역
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Black)
+                        .padding(vertical = 16.dp)
+                ) {
+                    ModeButton(
+                        text = "바코드",
+                        isSelected = currentMode == FoodMode.Barcode,
+                        onClick = { currentMode = FoodMode.Barcode },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ModeButton(
+                        text = "자동 인식",
+                        isSelected = currentMode == FoodMode.Auto_Recognition,
+                        onClick = { currentMode = FoodMode.Auto_Recognition },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // 카메라 셔터 버튼
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .padding(bottom = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (currentMode == FoodMode.Auto_Recognition) {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(Color.White, CircleShape)
+                                .clickable {
+                                    shouldAnalyzeImage = true  // 셔터 버튼을 눌렀을 때 분석 플래그 설정
                                 }
-                            }
                         )
-                    }
-
-                    // 하단 버튼 영역
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Black)
-                            .padding(vertical = 16.dp)
-                    ) {
-                        ModeButton(
-                            text = "바코드",
-                            isSelected = currentMode == FoodMode.Barcode,
-                            onClick = { currentMode = FoodMode.Barcode },
-                            modifier = Modifier.weight(1f)
-                        )
-                        ModeButton(
-                            text = "자동 인식",
-                            isSelected = currentMode == FoodMode.Auto_Recognition,
-                            onClick = { currentMode = FoodMode.Auto_Recognition },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // 카메라 셔터 버튼
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .padding(bottom = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (currentMode == FoodMode.Auto_Recognition) {
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .background(Color.White, CircleShape)
-                                    .clickable {
-                                        shouldAnalyzeImage = true  // 셔터 버튼을 눌렀을 때 분석 플래그 설정
-                                    }
-                            )
-                        }
                     }
                 }
             }
+        }
 
     @Composable
     fun ModeButton(

@@ -57,6 +57,9 @@ android {
             kotlin.srcDir("build/generated/ksp/release/kotlin")
         }
     }
+    aaptOptions {
+        noCompress("tflite")
+    }
 }
 
 dependencies {
