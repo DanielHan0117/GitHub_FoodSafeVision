@@ -5,66 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e7388fd4-a197-4e74-b94d-dcf81867fd10" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitattributes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/appInsightsSettings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/deploymentTargetSelector.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/gradle.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/kotlinc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/migrations.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/build.gradle.kts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/models/tf_mobilenetv3_small_100-37f49e2b.pth" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/proguard-rules.pro" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/androidTest/java/com/example/foodsafevision/ExampleInstrumentedTest.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/BarcodeRegistrationScreen.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/DateScanner.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/FoodListScreen.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/FoodScanner.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/MainActivity.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/data/database/AppDatabase.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/data/database/BarcodeProduct.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/data/database/BarcodeProductDao.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/data/database/BarcodeRepository.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/ui/theme/Color.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/ui/theme/Theme.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/java/com/example/foodsafevision/ui/theme/Type.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/drawable/ic_launcher_background.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/drawable/ic_launcher_foreground.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/drawable/test.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-hdpi/ic_launcher.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-mdpi/ic_launcher.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-xhdpi/ic_launcher.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/values/colors.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/values/strings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/values/themes.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/xml/backup_rules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/xml/data_extraction_rules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/main/res/xml/test.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/app/src/test/java/com/example/foodsafevision/ExampleUnitTest.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/build.gradle.kts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/gradle.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/gradle/libs.versions.toml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/gradlew" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/gradlew.bat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FoodSafeVision/settings.gradle.kts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FoodSafeVision/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,9 +31,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2pSOSHG1X53R0jz0WAw1rlhDPf9" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -105,7 +47,7 @@
     "android.gradle.sync.needed": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "Han",
+    "git-widget-placeholder": "jungyeol",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/asw411/Documents/GitHub/GitHub_FoodSafeVision",
     "project.structure.last.edited": "Modules",
