@@ -60,6 +60,9 @@ android {
     aaptOptions {
         noCompress("tflite")
     }
+    sourceSets {
+        sourceSets["main"].assets.srcDirs("src/main/assets")
+    }
 }
 
 dependencies {
@@ -109,4 +112,7 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+
+    implementation("com.tencent.ncnn:ncnn-android:1.0.0")
 }

@@ -1,6 +1,12 @@
 package com.example.foodsafevision
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
 import android.graphics.drawable.BitmapDrawable
+import android.media.Image
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.Image
@@ -42,7 +48,8 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.objects.ObjectDetection
-import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class FoodMode {
     Barcode, Auto_Recognition
@@ -84,16 +91,24 @@ fun FoodScanner(
                 .build()
         }
 
-        // 객체 감지기 설정
-        val customObjectDetector = remember {
-            val options = CustomObjectDetectorOptions.Builder(localModel)
-                .setDetectorMode(CustomObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                .enableClassification()
-                .setClassificationConfidenceThreshold(0.3f)  // 임계값을 낮춰서 더 많은 객체 감지
-                .setMaxPerObjectLabelCount(5)
-                .build()
-            ObjectDetection.getClient(options)
+    // 객체 감지기 설정
+    private lateinit var nanoDetector: NanoDet
+    private val nanoDetInitialized = AtomicBoolean(false)
+
+    // NanoDet 초기화 함수
+    private fun initNanoDet() {
+        if (!nanoDetInitialized.get()) {
+            try {
+                nanoDetector = NanoDet()
+                val ret = nanoDetector.loadModel(assets, "nanodet.param", "nanodet.bin")
+                if (ret == 0) {
+                    nanoDetInitialized.set(true)
+                }
+            } catch (e: Exception) {
+                Log.e("NanoDet", "모델 로딩 실패", e)
+            }
         }
+    }
 
         var showObjectDetectionDialog by remember { mutableStateOf(false) }
         var detectedObjectName by remember { mutableStateOf("") }
@@ -260,50 +275,46 @@ fun FoodScanner(
                                             imageProxy.close()
                                         }
                                     }
-                                    // 객체 감지 부분 구현
+                                    // 객체 감지 구현 부분
                                     FoodMode.Auto_Recognition -> {
                                         if (shouldAnalyzeImage) {
                                             val mediaImage = imageProxy.image
                                             if (mediaImage != null) {
-                                                val image = InputImage.fromMediaImage(
-                                                    mediaImage,
-                                                    imageProxy.imageInfo.rotationDegrees
-                                                )
+                                                if (!nanoDetInitialized.get()) {
+                                                    initNanoDet()
+                                                }
 
-                                                customObjectDetector.process(image)
-                                                    .addOnSuccessListener { detectedObjects ->
-                                                        if (detectedObjects.isNotEmpty()) {
-                                                            // 가장 높은 신뢰도를 가진 객체 찾기
-                                                            val highestConfidenceObject = detectedObjects.maxByOrNull {
-                                                                it.labels.maxOfOrNull { label -> label.confidence } ?: 0f
-                                                            }
+                                                try {
+                                                    // 이미지를 Bitmap으로 변환
+                                                    val bitmap = mediaImageToBitmap(mediaImage)
 
-                                                            highestConfidenceObject?.labels?.firstOrNull()?.let { label ->
-                                                                detectedObjectName = label.text
-                                                                showObjectDetectionDialog = true
-                                                            } ?: run {
-                                                                detectedObjectName = "객체 인식 실패"
-                                                                showObjectDetectionDialog = true
-                                                            }
-                                                        } else {
+                                                    // NanoDet로 객체 감지 실행
+                                                    val objects = nanoDetector.detect(bitmap, threshold = 0.4f)
+
+                                                    if (objects.isNotEmpty()) {
+                                                        // 가장 높은 신뢰도를 가진 객체 찾기
+                                                        val highestConfidenceObject = objects.maxByOrNull { it.prob }
+
+                                                        highestConfidenceObject?.let { obj ->
+                                                            detectedObjectName = "${obj.label} (${String.format("%.1f", obj.prob * 100)}%)"
+                                                            showObjectDetectionDialog = true
+                                                        } ?: run {
                                                             detectedObjectName = "객체 인식 실패"
                                                             showObjectDetectionDialog = true
                                                         }
-                                                        shouldAnalyzeImage = false
-                                                    }
-                                                    .addOnFailureListener { e ->
-                                                        Log.e("ObjectDetection", "객체 감지 실패", e)
+                                                    } else {
                                                         detectedObjectName = "객체 인식 실패"
                                                         showObjectDetectionDialog = true
-                                                        shouldAnalyzeImage = false
                                                     }
-                                                    .addOnCompleteListener {
-                                                        imageProxy.close()
-                                                    }
-                                            } else {
-                                                imageProxy.close()
+                                                } catch (e: Exception) {
+                                                    Log.e("NanoDet", "객체 감지 실패", e)
+                                                    detectedObjectName = "객체 인식 실패: ${e.localizedMessage}"
+                                                    showObjectDetectionDialog = true
+                                                }
+
                                                 shouldAnalyzeImage = false
                                             }
+                                            imageProxy.close()
                                         } else {
                                             imageProxy.close()
                                         }
@@ -417,3 +428,28 @@ fun FoodScanner(
             }
         }
     }
+
+// MediaImage를 Bitmap으로 변환하는 유틸리티 함수
+private fun mediaImageToBitmap(mediaImage: Image): Bitmap {
+    val planes = mediaImage.planes
+    val yBuffer = planes[0].buffer
+    val uBuffer = planes[1].buffer
+    val vBuffer = planes[2].buffer
+
+    val ySize = yBuffer.remaining()
+    val uSize = uBuffer.remaining()
+    val vSize = vBuffer.remaining()
+
+    val nv21 = ByteArray(ySize + uSize + vSize)
+
+    yBuffer.get(nv21, 0, ySize)
+    vBuffer.get(nv21, ySize, vSize)
+    uBuffer.get(nv21, ySize + vSize, uSize)
+
+    val yuvImage = YuvImage(nv21, ImageFormat.NV21, mediaImage.width, mediaImage.height, null)
+    val out = ByteArrayOutputStream()
+    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
+    val imageBytes = out.toByteArray()
+
+    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+}
