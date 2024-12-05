@@ -19,6 +19,14 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // NDK 설정
+        externalNativeBuild {
+            cmake {
+                arguments("-DANDROID_STL=c++_shared")
+                abiFilters("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
+        }
     }
 
     buildTypes {
@@ -30,26 +38,32 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
     }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    // Room 스키마 위치 지정
+
     sourceSets {
+        getByName("main").assets.srcDirs("src/main/assets")
         getByName("debug") {
             kotlin.srcDir("build/generated/ksp/debug/kotlin")
         }
@@ -57,12 +71,24 @@ android {
             kotlin.srcDir("build/generated/ksp/release/kotlin")
         }
     }
+
     aaptOptions {
         noCompress("tflite")
     }
-    sourceSets {
-        sourceSets["main"].assets.srcDirs("src/main/assets")
+
+    externalNativeBuild {
+        cmake {
+            path("src/main/jni/CMakeLists.txt")
+        }
     }
+}
+
+repositories {
+    maven {
+        url = uri("https://dl.bintray.com/nihui/maven")
+    }
+    google()
+    mavenCentral()
 }
 
 dependencies {
@@ -113,6 +139,5 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-
-    implementation("com.tencent.ncnn:ncnn-android:1.0.0")
+    implementation("com.tencent.ncnn:ncnn-android-lib:8.9.0")
 }

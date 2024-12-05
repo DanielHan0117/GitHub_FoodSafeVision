@@ -1,5 +1,6 @@
 package com.example.foodsafevision
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
@@ -92,15 +93,15 @@ fun FoodScanner(
         }
 
     // 객체 감지기 설정
-    private lateinit var nanoDetector: NanoDet
-    private val nanoDetInitialized = AtomicBoolean(false)
+    lateinit var nanoDetector: NanoDet
+    val nanoDetInitialized = AtomicBoolean(false)
 
     // NanoDet 초기화 함수
-    private fun initNanoDet() {
+    fun initNanoDet(context: Context) {
         if (!nanoDetInitialized.get()) {
             try {
                 nanoDetector = NanoDet()
-                val ret = nanoDetector.loadModel(assets, "nanodet.param", "nanodet.bin")
+                val ret = nanoDetector.loadModel(context.assets, "nanodet.param", "nanodet.bin")
                 if (ret == 0) {
                     nanoDetInitialized.set(true)
                 }
@@ -275,31 +276,29 @@ fun FoodScanner(
                                             imageProxy.close()
                                         }
                                     }
-                                    // 객체 감지 구현 부분
                                     FoodMode.Auto_Recognition -> {
                                         if (shouldAnalyzeImage) {
                                             val mediaImage = imageProxy.image
                                             if (mediaImage != null) {
-                                                if (!nanoDetInitialized.get()) {
-                                                    initNanoDet()
-                                                }
-
                                                 try {
                                                     // 이미지를 Bitmap으로 변환
                                                     val bitmap = mediaImageToBitmap(mediaImage)
+
+                                                    if (!nanoDetInitialized.get()) {
+                                                        initNanoDet(context)
+                                                    }
 
                                                     // NanoDet로 객체 감지 실행
                                                     val objects = nanoDetector.detect(bitmap, threshold = 0.4f)
 
                                                     if (objects.isNotEmpty()) {
                                                         // 가장 높은 신뢰도를 가진 객체 찾기
-                                                        val highestConfidenceObject = objects.maxByOrNull { it.prob }
+                                                        val highestConfidenceObject = objects.maxByOrNull { detectedObject ->
+                                                            detectedObject.labels.maxOfOrNull { label -> label.confidence } ?: 0f
+                                                        }
 
-                                                        highestConfidenceObject?.let { obj ->
-                                                            detectedObjectName = "${obj.label} (${String.format("%.1f", obj.prob * 100)}%)"
-                                                            showObjectDetectionDialog = true
-                                                        } ?: run {
-                                                            detectedObjectName = "객체 인식 실패"
+                                                        highestConfidenceObject?.labels?.firstOrNull()?.let { label ->
+                                                            detectedObjectName = "${label.text} (${String.format("%.1f", label.confidence * 100)}%)"
                                                             showObjectDetectionDialog = true
                                                         }
                                                     } else {
