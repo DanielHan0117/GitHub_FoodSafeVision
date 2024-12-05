@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="451d8248-31c7-457e-94b7-50f90f7f6020" name="Changes" comment="">
+<<<<<<< Updated upstream
       <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
@@ -39,6 +40,11 @@
       <change beforePath="$PROJECT_DIR$/src/main/res/xml/data_extraction_rules.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/res/xml/test.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/java/com/example/foodsafevision/ExampleUnitTest.kt" beforeDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FoodSafeVision/.idea/deploymentTargetSelector.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FoodSafeVision/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FoodSafeVision/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FoodSafeVision/.idea/misc.xml" afterDir="false" />
+>>>>>>> Stashed changes
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +54,10 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
+<<<<<<< Updated upstream
   <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=LocalEmulator, isTemplate=false, identifier=path=C:\Users\asw411\.android\avd\Medium_Phone_API_35.avd)]" />
+=======
+>>>>>>> Stashed changes
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$/FoodSafeVision">
       <ProjectState />
@@ -57,6 +66,7 @@
   <component name="ExternalProjectsManager">
     <system id="GRADLE">
       <state>
+<<<<<<< Updated upstream
         <task path="$PROJECT_DIR$/FoodSafeVision/app">
           <activation />
         </task>
@@ -86,6 +96,11 @@
                 <item name="other" type="c8890929:TasksNode$1" />
               </path>
             </expand>
+=======
+        <projects_view>
+          <tree_state>
+            <expand />
+>>>>>>> Stashed changes
             <select />
           </tree_state>
         </projects_view>
@@ -103,6 +118,7 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
+<<<<<<< Updated upstream
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Android App.FoodSafeVision.app.executor": "Run",
@@ -120,6 +136,23 @@
     "project.structure.side.proportion": "0.2"
   }
 }]]></component>
+=======
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Han&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/asw411/Documents/GitHub/GitHub_FoodSafeVision/FoodSafeVision/settings.gradle.kts&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;
+  }
+}</component>
+>>>>>>> Stashed changes
   <component name="RunManager" selected="Android App.FoodSafeVision.app">
     <configuration name="FoodSafeVision.app" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
       <module name="FoodSafeVision.app.main" />
