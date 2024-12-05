@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.foodsafevision.app-mergeDebugResources-67:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\asw411\\.gradle\\caches\\transforms-4\\8c56498c3cd32cce933375db0fa185f8\\transformed\\appcompat-1.6.1\\res\\values-v16\\values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "223"
+                    }
+                }
+            ]
+        }
+    ]
+}
