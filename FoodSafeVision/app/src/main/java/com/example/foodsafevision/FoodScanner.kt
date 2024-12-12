@@ -1,6 +1,7 @@
 package com.example.foodsafevision
 
 import android.content.Context
+import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
@@ -55,6 +56,32 @@ import java.util.concurrent.atomic.AtomicBoolean
 enum class FoodMode {
     Barcode, Auto_Recognition
 }
+
+class NanoDet {
+    private var net: ncnn.Net? = null
+
+    fun loadModel(assets: AssetManager, paramPath: String, binPath: String): Int {
+        net = ncnn.Net()
+        // 모델 파일 로드
+        val param = assets.open(paramPath).readBytes()
+        val bin = assets.open(binPath).readBytes()
+
+        return net?.loadParam(param) ?: -1 and
+        net?.loadModel(bin) ?: -1
+    }
+
+    fun detect(bitmap: Bitmap, threshold: Float = 0.4f): List<DetectionResult> {
+        // 이미지 전처리
+        val inputMat = ncnn.Mat.fromBitmap(bitmap)
+
+        // 객체 감지 수행
+        val result = net?.runDetection(inputMat, threshold) ?: emptyList()
+
+        inputMat.release()
+        return result
+    }
+}
+
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
