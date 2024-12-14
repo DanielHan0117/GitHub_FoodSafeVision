@@ -1,23 +1,42 @@
 [versions]
-agp = "8.6.0"
-kotlin = "1.9.0"
+agp = "8.6.1"
+barcodeScanning = "17.3.0"
+cameraCamera2 = "1.4.1"
+cameraCamera2Version = "1.4.1"
+cameraLifecycle = "1.4.1"
+cameraView = "1.4.1"
+gson = "2.10.1"
+kotlin = "1.9.21"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-lifecycleRuntimeKtx = "2.8.6"
-activityCompose = "1.9.2"
-composeBom = "2024.04.01"
+lifecycleRuntimeKtx = "2.8.7"
+activityCompose = "1.9.3"
+composeBom = "2024.12.01"
+pytorch_android = "1.12.2"
+pytorch_android_torchvision = "1.12.2"
 roomCommon = "2.6.1"
+roomCompiler = "2.6.1"
 roomKtx = "2.6.1"
+roomRuntime = "2.6.1"
 visionCommon = "17.3.0"
 playServicesMlkitBarcodeScanning = "18.3.1"
-navigationCompose = "2.8.4"
-objectDetectionCustom = "17.0.2"
+navigationCompose = "2.8.5"
 firebaseCrashlyticsBuildtools = "3.0.2"
 
 [libraries]
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
+androidx-camera-camera2-v130 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2Version" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCamera2" }
+androidx-camera-lifecycle-v130 = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraLifecycle" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCamera2" }
+androidx-camera-view-v130 = { module = "androidx.camera:camera-view", version.ref = "cameraView" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -33,13 +52,13 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-room-common = { group = "androidx.room", name = "room-common", version.ref = "roomCommon" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
+pytorch_android = { module = "org.pytorch:pytorch_android", version.ref = "pytorch_android" }
+pytorch_android_torchvision = { module = "org.pytorch:pytorch_android_torchvision", version.ref = "pytorch_android_torchvision" }
 vision-common = { group = "com.google.mlkit", name = "vision-common", version.ref = "visionCommon" }
 play-services-mlkit-barcode-scanning = { group = "com.google.android.gms", name = "play-services-mlkit-barcode-scanning", version.ref = "playServicesMlkitBarcodeScanning" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-object-detection-custom = { group = "com.google.mlkit", name = "object-detection-custom", version.ref = "objectDetectionCustom" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-

@@ -41,12 +41,16 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.7"
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+    aaptOptions {
+        noCompress("pth")
+        noCompress("ptl")
     }
 }
 
@@ -75,24 +79,24 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // ML Kit 바코드 스캐닝 (번들형)
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation(libs.barcode.scanning)
 
     // CameraX 라이브러리들 (카메라 사용을 위해 필요)
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.0")
-    implementation("androidx.camera:camera-lifecycle:1.3.0")
-    implementation("androidx.camera:camera-view:1.3.0")
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.camera2.v130)
+    implementation(libs.androidx.camera.lifecycle.v130)
+    implementation(libs.androidx.camera.view.v130)
 
-    implementation("com.google.mlkit:object-detection-custom:17.0.0")
-    implementation("org.tensorflow:tensorflow-lite:2.9.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
-
-    implementation("com.google.code.gson:gson:2.8.9")
+    implementation(libs.gson)
 
     // Room 라이브러리
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    implementation("org.pytorch:pytorch_android:1.12.2")
+    //implementation("org.pytorch:pytorch_android_torchvision:1.12.2")
+
 }

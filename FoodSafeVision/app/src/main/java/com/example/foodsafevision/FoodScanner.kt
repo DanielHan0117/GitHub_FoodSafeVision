@@ -1,10 +1,18 @@
 package com.example.foodsafevision
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
+import android.media.Image
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -28,26 +36,126 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.foodsafevision.data.repository.BarcodeRepository
-import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.objects.ObjectDetection
-import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import org.pytorch.Module
+import org.pytorch.IValue
+import org.pytorch.Tensor
+
+
 
 enum class FoodMode {
     Barcode, Auto_Recognition
 }
+
+
+private fun assetFilePath(context: Context, assetName: String): String {
+    val file = File(context.filesDir, assetName)
+    if (!file.exists()) {
+        context.assets.open(assetName).use { inputStream ->
+            FileOutputStream(file).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+    }
+    return file.absolutePath
+}
+
+private fun Image.toBitmap(): Bitmap {
+    val yBuffer = planes[0].buffer
+    val uBuffer = planes[1].buffer
+    val vBuffer = planes[2].buffer
+
+    val ySize = yBuffer.remaining()
+    val uSize = uBuffer.remaining()
+    val vSize = vBuffer.remaining()
+
+    val nv21 = ByteArray(ySize + uSize + vSize)
+
+    yBuffer.get(nv21, 0, ySize)
+    vBuffer.get(nv21, ySize, vSize)
+    uBuffer.get(nv21, ySize + vSize, uSize)
+
+    val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+    val out = ByteArrayOutputStream()
+    yuvImage.compressToJpeg(Rect(0, 0, width, height), 100, out)
+    val imageBytes = out.toByteArray()
+    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+}
+
+private fun getClassName(index: Int): String {
+    // 클래스 이름 매핑 (실제 구현 필요)
+    return "Food_$index"
+}
+
+// 레이블 로딩 함수
+private fun loadLabels(context: Context): Map<Int, String> {
+    val foodLabels = mapOf(
+        //924 to "과카몰리",
+        //925 to "콘소메",
+        //926 to "핫팟",
+        //927 to "트라이플",
+        //928 to "아이스크림",
+        //929 to "아이스 롤리",
+        //930 to "프렌치 로프",
+        //931 to "베이글",
+        //932 to "프레첼",
+        //933 to "치즈버거",
+        //934 to "핫도그",
+        //935 to "으깬 감자",
+        //936 to "양배추",
+        //937 to "브로콜리",
+        //938 to "콜리플라워",
+        //939 to "주키니",
+        //940 to "스파게티 스쿼시",
+        //941 to "도토리 호박",
+        //942 to "버터넛 스쿼시",
+        //943 to "오이",
+        //944 to "아티초크",
+        //945 to "피망",
+        //946 to "카르둔",
+        //947 to "버섯",
+        //948 to "그래니 스미스 사과",
+        //949 to "딸기",
+        //950 to "오렌지",
+        //951 to "레몬",
+        //952 to "무화과",
+        953 to "파인애플",
+        //954 to "바나나",
+        //955 to "잭프루트",
+        //956 to "커스터드 애플",
+        //957 to "석류",
+        //959 to "카르보나라",
+        //960 to "초콜릿 소스",
+        //961 to "도우",
+        //962 to "미트로프",
+        963 to "피자",
+        //964 to "팟파이",
+        //965 to "부리토"
+    )
+
+    return foodLabels
+}
+
+
+
+
+
+
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun FoodScanner(
     barcodeRepository: BarcodeRepository,
     onBarcodeDetected: (Any?, Any?) -> Unit = { any: Any?, any1: Any? -> },  // 바코드 감지 콜백
-    onObjectDetected: () -> Unit = {}    // 객체 감지 콜백
-    ) {
+    onObjectDetected: (String) -> Unit = {}  // 콜백 수정
+) {
     var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
     var showDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
@@ -62,313 +170,355 @@ fun FoodScanner(
             .build()
     }
     val scanner = remember { BarcodeScanning.getClient(options) }
-    // ML Kit 바코드 스캐너 설정
-
-    val context = LocalContext.current
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-    val previewView = remember { PreviewView(context) }
-    var shouldAnalyzeImage by remember { mutableStateOf(false) }
-
-    // MobileNet V3 모델 설정
-    val localModel = remember {
-        LocalModel.Builder()
-            .setAssetFilePath("mobilenet_v3_1.0_224_float.tflite")
-            .build()
-    }
-
-    // 객체 감지기 설정
-    val customObjectDetector = remember {
-        val options = CustomObjectDetectorOptions.Builder(localModel)
-            .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
-            .enableClassification()
-            .setClassificationConfidenceThreshold(0.5f)
-            .setMaxPerObjectLabelCount(3)
-            .build()
-        ObjectDetection.getClient(options)
-    }
-
-    var showObjectDetectionDialog by remember { mutableStateOf(false) }
-    var detectedObjectName by remember { mutableStateOf("") }
     var showBarcodeResult by remember { mutableStateOf(false) }
     var barcodeValue by remember { mutableStateOf("") }
-
     val coroutineScope = rememberCoroutineScope()
 
-    // 바코드 감지 시 호출되는 함수
-    suspend fun onBarcodeDetected(barcodeValue: String, barcode: Barcode) {
-        coroutineScope.launch {
-            try {
-                // 데이터베이스에서 바코드에 해당하는 제품명 조회
-                val productName = barcodeRepository.getProductNameByBarcode(barcodeValue)
 
-                // 스캔 결과 전달 (바코드 번호와 제품명)
-                onBarcodeDetected(barcodeValue, productName)
+    var shouldAnalyzeImage by remember { mutableStateOf(false) }
+
+    // PyTorch 모듈 초기화
+    val context = LocalContext.current
+    val labels = remember { loadLabels(context) }
+    val module = try {
+        val path = assetFilePath(context, "mobilenet_v3_small.pt")
+        Log.d("FoodScanner", "모델 파일 경로: $path")
+        val exists = File(path).exists()
+        Log.d("FoodScanner", "파일 존재 여부: $exists")
+        Module.load(path)
+    } catch (e: Exception) {
+        Log.e("FoodScanner", "모델 로딩 실패: ${e.message}", e)
+        null
+    }
+
+
+    // 이미지 분석 로직
+    fun analyzeImage(imageProxy: ImageProxy) {
+        val mediaImage = imageProxy.image
+        if (module == null) Log.e("FoodScanner", "모듈이 null입니다")
+        if (mediaImage != null && module != null) {
+            try {
+                Log.d("FoodScanner", "이미지 변환 시작")
+                val bitmap = mediaImage.toBitmap()
+                val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
+                Log.d("FoodScanner", "이미지 리사이즈 완료: ${resizedBitmap.width}x${resizedBitmap.height}")
+
+                // 이미지를 Float 배열로 변환
+                Log.d("FoodScanner", "텐서 변환 시작")
+                val floatArray = FloatArray(3 * 224 * 224)
+                var index = 0
+                for (y in 0 until 224) {
+                    for (x in 0 until 224) {
+                        val pixel = resizedBitmap.getPixel(x, y)
+                        val r = android.graphics.Color.red(pixel)
+                        val g = android.graphics.Color.green(pixel)
+                        val b = android.graphics.Color.blue(pixel)
+
+                        floatArray[index++] = (r / 255f - 0.485f) / 0.229f
+                        floatArray[index++] = (g / 255f - 0.456f) / 0.224f
+                        floatArray[index++] = (b / 255f - 0.406f) / 0.225f
+                    }
+                }
+                Log.d("FoodScanner", "텐서 변환 완료")
+
+                // 텐서 생성
+                Log.d("FoodScanner", "PyTorch 텐서 생성 시작")
+                val inputTensor = Tensor.fromBlob(
+                    floatArray,
+                    longArrayOf(1, 3, 224, 224)
+                )
+                Log.d("FoodScanner", "PyTorch 텐서 생성 완료")
+
+                // 추론 실행
+                Log.d("FoodScanner", "모델 추론 시작")
+                val outputTensor = module.forward(IValue.from(inputTensor)).toTensor()
+                val scores = outputTensor.dataAsFloatArray
+                Log.d("FoodScanner", "모델 추론 완료: ${scores.size}개의 클래스")
+
+                // 최대값 찾기
+                var maxScore = Float.NEGATIVE_INFINITY
+                var maxScoreIdx = -1
+                scores.forEachIndexed { index: Int, score: Float ->
+                    // 원하는 클래스 인덱스만 확인
+                    if (index in labels.keys && score > maxScore) {
+                        maxScore = score
+                        maxScoreIdx = index
+                    }
+                }
+
+                Log.d("FoodScanner", "분류 결과: 클래스 $maxScoreIdx (점수: $maxScore)")
+
+                // 레이블 이름으로 결과 전달
+                val detectedLabel = labels[maxScoreIdx] ?: "알 수 없음"
+                Log.d("FoodScanner", "분류 결과: 클래스 $detectedLabel")
+                onObjectDetected(detectedLabel)
 
             } catch (e: Exception) {
-                // 오류 발생 시 null로 처리
-                onBarcodeDetected(barcodeValue, null)
+                Log.e("FoodScanner", "이미지 분석 실패", e)
+            } finally {
+                imageProxy.close()
             }
+        } else {
+            Log.e("FoodScanner", "이미지 또는 모듈이 null입니다")
+            imageProxy.close()
         }
     }
+
+
+
+
+
+
+
+
+
 
 
 
     Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        // 상단 버튼 영역
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(
+                onClick = { /* 취소 로직 */ },
+                colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
-                // 상단 버튼 영역
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                Text("취소")
+            }
+            TextButton(
+                onClick = { showDialog = true },
+                colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+            ) {
+                Text("직접 입력")
+            }
+        }
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showDialog = false
+                    inputText = ""
+                },
+                title = {
+                    Text(
+                        "  직접 입력",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                text = {
+                    TextField(
+                        value = inputText,
+                        placeholder = { Text("식품명") },
+                        onValueChange = { inputText = it },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                    )
+
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
+                },
+                confirmButton = {
                     TextButton(
-                        onClick = { /* 취소 로직 */ },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                        onClick = {
+                            // 확인 버튼 로직
+                            showDialog = false
+                        },
+                        enabled = inputText.isNotBlank()
                     ) {
+                        Text("확인")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        inputText = "" // 입력 초기화
+                    }) {
                         Text("취소")
                     }
-                    TextButton(
-                        onClick = { showDialog = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
-                    ) {
-                        Text("직접 입력")
-                    }
                 }
+            )
+        }
 
-                if (showDialog) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            showDialog = false
-                            inputText = ""
-                        },
-                        title = {
-                            Text(
-                                "  직접 입력",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        },
-                        text = {
-                            TextField(
-                                value = inputText,
-                                placeholder = { Text("식품명") },
-                                onValueChange = { inputText = it },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequester)
-                            )
+        // 카메라 프리뷰 영역
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .background(Color.Green)
+        ) {
+            val context = LocalContext.current
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+            val previewView = remember { PreviewView(context) }
 
-                            LaunchedEffect(Unit) {
-                                focusRequester.requestFocus()
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                // 확인 버튼 로직
-                                showDialog = false
-                            },
-                                enabled = inputText.isNotBlank()
-                            ) {
-                                Text("확인")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = {
-                                showDialog = false
-                                inputText = "" // 입력 초기화
-                            }) {
-                                Text("취소")
-                            }
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier.fillMaxSize()
+            ) { view ->
+                cameraProviderFuture.addListener({
+                    val cameraProvider = cameraProviderFuture.get()
+
+                    val preview = Preview.Builder()
+                        .build()
+                        .also {
+                            it.setSurfaceProvider(view.surfaceProvider)
                         }
-                    )
-                }
 
-                // 카메라 프리뷰 영역
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .background(Color.Green)
-                ) {
-                    val context = LocalContext.current
-                    val lifecycleOwner = LocalLifecycleOwner.current
-                    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-                    val previewView = remember { PreviewView(context) }
+                    val imageAnalysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
 
-                    AndroidView(
-                        factory = { previewView },
-                        modifier = Modifier.fillMaxSize()
-                    ) { view ->
-                        cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
+                    imageAnalysis.setAnalyzer(
+                        ContextCompat.getMainExecutor(context)
+                    ) { imageProxy ->
+                        when (currentMode) {
+                            FoodMode.Barcode -> {
+                                val mediaImage = imageProxy.image
+                                if (mediaImage != null) {
+                                    val image = InputImage.fromMediaImage(
+                                        mediaImage,
+                                        imageProxy.imageInfo.rotationDegrees
+                                    )
 
-                            val preview = Preview.Builder()
-                                .build()
-                                .also {
-                                    it.setSurfaceProvider(view.surfaceProvider)
-                                }
+                                    scanner.process(image)
+                                        .addOnSuccessListener { barcodes ->
+                                            if (barcodes.isNotEmpty()) {
+                                                val scannedBarcode =
+                                                    barcodes[0].rawValue ?: "알 수 없음"
+                                                barcodeValue = scannedBarcode
+                                                showBarcodeResult = true
 
-                            val imageAnalysis = ImageAnalysis.Builder()
-                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .build()
-
-                            imageAnalysis.setAnalyzer(
-                                ContextCompat.getMainExecutor(context)
-                            ) { imageProxy ->
-                                when (currentMode) {
-                                    FoodMode.Barcode -> {
-                                        val mediaImage = imageProxy.image
-                                        if (mediaImage != null) {
-                                            val image = InputImage.fromMediaImage(
-                                                mediaImage,
-                                                imageProxy.imageInfo.rotationDegrees
-                                            )
-
-                                            scanner.process(image)
-                                                .addOnSuccessListener { barcodes ->
-                                                    if (barcodes.isNotEmpty()) {
-                                                        val scannedBarcode = barcodes[0].rawValue ?: "알 수 없음"
-                                                        barcodeValue = scannedBarcode
-                                                        showBarcodeResult = true
-
-                                                        // 코루틴 스코프 내에서 데이터베이스 조회
-                                                        coroutineScope.launch {
-                                                            try {
-                                                                val productName = barcodeRepository.getProductNameByBarcode(scannedBarcode)
-                                                                onBarcodeDetected(scannedBarcode, productName)
-                                                            } catch (e: Exception) {
-                                                                Log.e("BarcodeScanner", "바코드 조회 실패", e)
-                                                                onBarcodeDetected(scannedBarcode, null)
-                                                            }
-                                                        }
+                                                // 코루틴 스코프 내에서 데이터베이스 조회
+                                                coroutineScope.launch {
+                                                    try {
+                                                        val productName =
+                                                            barcodeRepository.getProductNameByBarcode(
+                                                                scannedBarcode
+                                                            )
+                                                        onBarcodeDetected(
+                                                            scannedBarcode,
+                                                            productName
+                                                        )
+                                                    } catch (e: Exception) {
+                                                        Log.e("BarcodeScanner", "바코드 조회 실패", e)
+                                                        onBarcodeDetected(scannedBarcode, null)
                                                     }
                                                 }
-                                                .addOnCompleteListener {
-                                                    imageProxy.close()
-                                                }
+                                            }
                                         }
-                                    }
-
-
-                                    FoodMode.Auto_Recognition -> {
-                                        if (shouldAnalyzeImage) {
-                                            // 객체 인식 기능 구현
-                                        } else {
+                                        .addOnCompleteListener {
                                             imageProxy.close()
                                         }
-                                    }
-                                    }
-                                }
-
-                                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-                                try {
-                                    cameraProvider.unbindAll()
-                                    cameraProvider.bindToLifecycle(
-                                        lifecycleOwner,
-                                        cameraSelector,
-                                        preview,
-                                        imageAnalysis
-                                    )
-                                } catch (exc: Exception) {
-                                    Log.e("CameraPreview", "바인딩 실패", exc)
-                                }
-                            }, ContextCompat.getMainExecutor(context))
-                        }
-                    }
-
-
-                if (showObjectDetectionDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                showObjectDetectionDialog = false
-                            },
-                            title = { Text("객체 감지 결과") },
-                            text = { Text("감지된 객체: $detectedObjectName") },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        showObjectDetectionDialog = false
-                                    }
-                                ) {
-                                    Text("확인")
                                 }
                             }
-                        )
-                    }
 
-                    // 하단 버튼 영역
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Black)
-                            .padding(vertical = 16.dp)
-                    ) {
-                        ModeButton(
-                            text = "바코드",
-                            isSelected = currentMode == FoodMode.Barcode,
-                            onClick = { currentMode = FoodMode.Barcode },
-                            modifier = Modifier.weight(1f)
-                        )
-                        ModeButton(
-                            text = "자동 인식",
-                            isSelected = currentMode == FoodMode.Auto_Recognition,
-                            onClick = { currentMode = FoodMode.Auto_Recognition },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
 
-                    // 카메라 셔터 버튼
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .padding(bottom = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (currentMode == FoodMode.Auto_Recognition) {
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .background(Color.White, CircleShape)
-                                    .clickable {
-                                        shouldAnalyzeImage = true  // 셔터 버튼을 눌렀을 때 분석 플래그 설정
-                                    }
-                            )
+                            FoodMode.Auto_Recognition -> {
+                                if (shouldAnalyzeImage) {
+                                    analyzeImage(imageProxy)
+                                    shouldAnalyzeImage = false
+                                } else {
+                                    imageProxy.close()
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-    @Composable
-    fun ModeButton(
-        text: String,
-        isSelected: Boolean,
-        onClick: () -> Unit,
-        modifier: Modifier = Modifier
-    ) {
-        Column(
-            modifier = modifier
-                .clickable(onClick = onClick),
-            horizontalAlignment = Alignment.CenterHorizontally
+                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                    try {
+                        cameraProvider.unbindAll()
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageAnalysis
+                        )
+                    } catch (exc: Exception) {
+                        Log.e("CameraPreview", "바인딩 실패", exc)
+                    }
+                }, ContextCompat.getMainExecutor(context))
+            }
+        }
+
+        // 하단 버튼 영역
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+                .padding(vertical = 16.dp)
         ) {
-            Text(
-                text = text,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 16.dp)
+            ModeButton(
+                text = "바코드",
+                isSelected = currentMode == FoodMode.Barcode,
+                onClick = { currentMode = FoodMode.Barcode },
+                modifier = Modifier.weight(1f)
             )
-            if (isSelected) {
+            ModeButton(
+                text = "자동 인식",
+                isSelected = currentMode == FoodMode.Auto_Recognition,
+                onClick = { currentMode = FoodMode.Auto_Recognition },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // 카메라 셔터 버튼
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(bottom = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (currentMode == FoodMode.Auto_Recognition) {
                 Box(
                     modifier = Modifier
-                        .height(2.dp)
-                        .fillMaxWidth(0.4f)
-                        .background(Color.White)
+                        .size(60.dp)
+                        .background(Color.White, CircleShape)
+                        .clickable {
+                            shouldAnalyzeImage = true  // 셔터 버튼을 눌렀을 때 분석 플래그 설정
+                        }
                 )
             }
         }
     }
+}
+
+@Composable
+fun ModeButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .height(2.dp)
+                    .fillMaxWidth(0.4f)
+                    .background(Color.White)
+            )
+        }
+    }
+}

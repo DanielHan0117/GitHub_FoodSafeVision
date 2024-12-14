@@ -2,7 +2,6 @@ package com.example.foodsafevision
 
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -113,6 +112,27 @@ fun BarcodeResultDialog(
                 } else {
                     Text("데이터베이스에서 식품을 찾을 수 없습니다.")
                 }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        }
+    )
+}
+
+@Composable
+fun ObjectDetectionDialog(
+    detectedLabel: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("객체 인식 결과") },
+        text = {
+            Column {
+                Text("인식된 객체: $detectedLabel")
             }
         },
         confirmButton = {
