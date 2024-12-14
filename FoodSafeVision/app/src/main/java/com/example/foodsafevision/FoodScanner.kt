@@ -49,7 +49,6 @@ import org.pytorch.IValue
 import org.pytorch.Tensor
 
 
-
 enum class FoodMode {
     Barcode, Auto_Recognition
 }
@@ -142,11 +141,6 @@ private fun loadLabels(context: Context): Map<Int, String> {
 
     return foodLabels
 }
-
-
-
-
-
 
 
 @OptIn(ExperimentalGetImage::class)

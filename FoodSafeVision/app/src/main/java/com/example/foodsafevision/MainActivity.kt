@@ -1,7 +1,9 @@
 package com.example.foodsafevision
 
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -15,6 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,13 +27,22 @@ import com.example.foodsafevision.data.database.BarcodeDatabase
 import com.example.foodsafevision.data.repository.BarcodeRepository
 import com.example.foodsafevision.ui.theme.FoodSafeVisionTheme
 import kotlinx.coroutines.launch
+import android.Manifest
+
 
 class MainActivity : ComponentActivity() {
+    private val PERMISSION_REQUEST_CODE = 100
+    private val requiredPermissions = arrayOf(
+        Manifest.permission.CAMERA
+    )
+
     private lateinit var barcodeRepository: BarcodeRepository
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        checkAndRequestPermissions()
 
         // 데이터베이스 초기화 및 JSON 데이터 로드
         val database = BarcodeDatabase.getDatabase(this)
@@ -92,8 +105,21 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    private fun checkAndRequestPermissions() {
+        val permissionsToRequest = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(
+                this,
+                permissionsToRequest.toTypedArray(),
+                PERMISSION_REQUEST_CODE
+            )
+        }
+    }
+}
 
 @Composable
 fun BarcodeResultDialog(
