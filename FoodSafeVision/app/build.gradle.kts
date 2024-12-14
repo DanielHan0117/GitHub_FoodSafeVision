@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -64,6 +65,7 @@ dependencies {
     implementation(libs.vision.common)
     implementation(libs.play.services.mlkit.barcode.scanning)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -86,4 +88,11 @@ dependencies {
     implementation("com.google.mlkit:object-detection-custom:17.0.0")
     implementation("org.tensorflow:tensorflow-lite:2.9.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
+
+    implementation("com.google.code.gson:gson:2.8.9")
+
+    // Room 라이브러리
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 }

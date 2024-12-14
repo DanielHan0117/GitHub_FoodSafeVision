@@ -1,7 +1,5 @@
 package com.example.foodsafevision
 
-import android.graphics.drawable.BitmapDrawable
-import androidx.compose.foundation.Image
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
@@ -24,15 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.foodsafevision.data.repository.BarcodeRepository
 import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -40,6 +35,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
+import kotlinx.coroutines.launch
 
 enum class FoodMode {
     Barcode, Auto_Recognition
@@ -48,55 +44,77 @@ enum class FoodMode {
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun FoodScanner(
-    onBarcodeDetected: () -> Unit = {},  // 바코드 감지 콜백
+    barcodeRepository: BarcodeRepository,
+    onBarcodeDetected: (Any?, Any?) -> Unit = { any: Any?, any1: Any? -> },  // 바코드 감지 콜백
     onObjectDetected: () -> Unit = {}    // 객체 감지 콜백
     ) {
-            var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
-            var showDialog by remember { mutableStateOf(false) }
-            var inputText by remember { mutableStateOf("") }
-            val focusRequester = remember { FocusRequester() }
+    var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
+    var showDialog by remember { mutableStateOf(false) }
+    var inputText by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
 
-            // 바코드 스캐너 초기화
-            val options = remember {
-                BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(
-                        Barcode.FORMAT_ALL_FORMATS
-                    )
-                    .build()
+    // 바코드 스캐너 초기화
+    val options = remember {
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_ALL_FORMATS
+            )
+            .build()
+    }
+    val scanner = remember { BarcodeScanning.getClient(options) }
+    // ML Kit 바코드 스캐너 설정
+
+    val context = LocalContext.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    val previewView = remember { PreviewView(context) }
+    var shouldAnalyzeImage by remember { mutableStateOf(false) }
+
+    // MobileNet V3 모델 설정
+    val localModel = remember {
+        LocalModel.Builder()
+            .setAssetFilePath("mobilenet_v3_1.0_224_float.tflite")
+            .build()
+    }
+
+    // 객체 감지기 설정
+    val customObjectDetector = remember {
+        val options = CustomObjectDetectorOptions.Builder(localModel)
+            .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
+            .enableClassification()
+            .setClassificationConfidenceThreshold(0.5f)
+            .setMaxPerObjectLabelCount(3)
+            .build()
+        ObjectDetection.getClient(options)
+    }
+
+    var showObjectDetectionDialog by remember { mutableStateOf(false) }
+    var detectedObjectName by remember { mutableStateOf("") }
+    var showBarcodeResult by remember { mutableStateOf(false) }
+    var barcodeValue by remember { mutableStateOf("") }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // 바코드 감지 시 호출되는 함수
+    suspend fun onBarcodeDetected(barcodeValue: String, barcode: Barcode) {
+        coroutineScope.launch {
+            try {
+                // 데이터베이스에서 바코드에 해당하는 제품명 조회
+                val productName = barcodeRepository.getProductNameByBarcode(barcodeValue)
+
+                // 스캔 결과 전달 (바코드 번호와 제품명)
+                onBarcodeDetected(barcodeValue, productName)
+
+            } catch (e: Exception) {
+                // 오류 발생 시 null로 처리
+                onBarcodeDetected(barcodeValue, null)
             }
-            val scanner = remember { BarcodeScanning.getClient(options) }
-            // ML Kit 바코드 스캐너 설정
+        }
+    }
 
-            val context = LocalContext.current
-            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-            val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-            val previewView = remember { PreviewView(context) }
-            var shouldAnalyzeImage by remember { mutableStateOf(false) }
 
-            // MobileNet V3 모델 설정
-            val localModel = remember {
-                LocalModel.Builder()
-                    .setAssetFilePath("mobilenet_v3_1.0_224_float.tflite")
-                    .build()
-            }
 
-            // 객체 감지기 설정
-            val customObjectDetector = remember {
-                val options = CustomObjectDetectorOptions.Builder(localModel)
-                    .setDetectorMode(CustomObjectDetectorOptions.STREAM_MODE)
-                    .enableClassification()
-                    .setClassificationConfidenceThreshold(0.5f)
-                    .setMaxPerObjectLabelCount(3)
-                    .build()
-                ObjectDetection.getClient(options)
-            }
-
-            var showObjectDetectionDialog by remember { mutableStateOf(false) }
-            var detectedObjectName by remember { mutableStateOf("") }
-            var showBarcodeResult by remember { mutableStateOf(false) }
-            var barcodeValue by remember { mutableStateOf("") }
-
-            Column(
+    Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
@@ -214,10 +232,20 @@ fun FoodScanner(
                                             scanner.process(image)
                                                 .addOnSuccessListener { barcodes ->
                                                     if (barcodes.isNotEmpty()) {
-                                                        // 바코드 값 저장 및 다이얼로그 표시
-                                                        barcodeValue = barcodes[0].rawValue ?: "알 수 없음"
+                                                        val scannedBarcode = barcodes[0].rawValue ?: "알 수 없음"
+                                                        barcodeValue = scannedBarcode
                                                         showBarcodeResult = true
-                                                        onBarcodeDetected()
+
+                                                        // 코루틴 스코프 내에서 데이터베이스 조회
+                                                        coroutineScope.launch {
+                                                            try {
+                                                                val productName = barcodeRepository.getProductNameByBarcode(scannedBarcode)
+                                                                onBarcodeDetected(scannedBarcode, productName)
+                                                            } catch (e: Exception) {
+                                                                Log.e("BarcodeScanner", "바코드 조회 실패", e)
+                                                                onBarcodeDetected(scannedBarcode, null)
+                                                            }
+                                                        }
                                                     }
                                                 }
                                                 .addOnCompleteListener {
@@ -225,7 +253,9 @@ fun FoodScanner(
                                                 }
                                         }
                                     }
-                                        FoodMode.Auto_Recognition -> {
+
+
+                                    FoodMode.Auto_Recognition -> {
                                         if (shouldAnalyzeImage) {
                                             // 객체 인식 기능 구현
                                         } else {
@@ -252,25 +282,8 @@ fun FoodScanner(
                         }
                     }
 
-                    if (showBarcodeResult) {
-                        AlertDialog(
-                            onDismissRequest = { showBarcodeResult = false },
-                            title = { Text("바코드 스캔 결과") },
-                            text = { Text("바코드 번호: $barcodeValue") },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        showBarcodeResult = false
-                                        onBarcodeDetected()  // DateScanner로 이동
-                                    }
-                                ) {
-                                    Text("확인")
-                                }
-                            }
-                        )
-                    }
 
-                    if (showObjectDetectionDialog) {
+                if (showObjectDetectionDialog) {
                         AlertDialog(
                             onDismissRequest = {
                                 showObjectDetectionDialog = false

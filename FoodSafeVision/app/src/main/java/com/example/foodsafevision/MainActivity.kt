@@ -2,25 +2,56 @@ package com.example.foodsafevision
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.foodsafevision.data.database.BarcodeDatabase
+import com.example.foodsafevision.data.repository.BarcodeRepository
 import com.example.foodsafevision.ui.theme.FoodSafeVisionTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private lateinit var barcodeRepository: BarcodeRepository
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 데이터베이스 초기화 및 JSON 데이터 로드
+        val database = BarcodeDatabase.getDatabase(this)
+        barcodeRepository = BarcodeRepository(database.barcodeDao())
+
+        // JSON 데이터 로드 및 확인
+        lifecycleScope.launch {
+            barcodeRepository.loadBarcodeDataFromJson(this@MainActivity)
+            val count = barcodeRepository.getProductCount()
+            val allBarcodes = barcodeRepository.getAllBarcodes()
+        }
+
+
         window.statusBarColor = androidx.compose.ui.graphics.Color.Black.toArgb()
         setContent {
             FoodSafeVisionTheme {
                 val navController = rememberNavController()
                 val foodList = remember { createSampleFoodList() }
+                var showDialog by remember { mutableStateOf(false) }
+                var scannedBarcode by remember { mutableStateOf<String?>(null) }
+                var scannedProductName by remember { mutableStateOf<String?>(null) }
 
                 NavHost(
                     navController = navController,
@@ -30,7 +61,7 @@ class MainActivity : ComponentActivity() {
                         FoodListScreen(
                             foodList = foodList,
                             onCheckFood = {
-                                // FoodScanner를 사용하여 새 음식 추가 로직
+                                navController.navigate("foodScanner")
                             },
                             onMenuClick = {
                                 // 메뉴 열기 로직
@@ -39,13 +70,21 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("foodScanner") {
                         FoodScanner(
-                            onBarcodeDetected = {
-                                //navController.navigate("dateScanner")
-                            },
-                            onObjectDetected = {
-                                //navController.navigate("dateScanner")
+                            barcodeRepository = barcodeRepository,
+                            onBarcodeDetected = { barcode, productName ->
+                                scannedBarcode = barcode.toString()
+                                scannedProductName = productName.toString()
+                                showDialog = true
                             }
                         )
+
+                        if (showDialog) {
+                            BarcodeResultDialog(
+                                barcodeNumber = scannedBarcode ?: "",
+                                productName = scannedProductName,
+                                onDismiss = { showDialog = false }
+                            )
+                        }
                     }
                     composable("dateScanner") {
                         DateScanner()
@@ -54,4 +93,32 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+
+@Composable
+fun BarcodeResultDialog(
+    barcodeNumber: String,
+    productName: String?,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("바코드 스캔 결과") },
+        text = {
+            Column {
+                Text("바코드 번호: $barcodeNumber")
+                if (productName != null) {
+                    Text("식품명: $productName")
+                } else {
+                    Text("데이터베이스에서 식품을 찾을 수 없습니다.")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        }
+    )
 }
