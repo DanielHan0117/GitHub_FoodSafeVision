@@ -4,26 +4,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.runtime.LaunchedEffect
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateScanner(
-    onDateDetected: () -> Unit = {},
-    onTextInput: () -> Unit = {}
+    onDateDetected: (String) -> Unit = {},
+    onDateSelected: (String) -> Unit = {},
+    onClickedDismiss: () -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    var inputDate by remember { mutableStateOf("") }
-    val focusRequester = remember { FocusRequester() }
+    val currentDate = remember { Calendar.getInstance() }
+    val datePickerState = rememberDatePickerState( initialSelectedDateMillis = currentDate.timeInMillis )
 
     Column(
         modifier = Modifier
@@ -38,7 +40,7 @@ fun DateScanner(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             TextButton(
-                onClick = { /* 취소 로직 */ },
+                onClick = { onClickedDismiss() },
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
                 Text("취소")
@@ -52,56 +54,36 @@ fun DateScanner(
         }
 
         if (showDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    showDialog = false
-                    inputDate = ""
-                },
-                title = {
-                    Text(
-                        "  직접 입력",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
-                text = {
-                    TextField(
-                        value = inputDate,
-                        placeholder = { Text("YYMMDD") },
-                        onValueChange = {
-                            if (it.length <= 6) {
-                                inputDate = it
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester)
-                    )
-
-                    LaunchedEffect(Unit) {
-                        focusRequester.requestFocus()
-                    }
-                },
+            DatePickerDialog(
+                onDismissRequest = { showDialog = false },
                 confirmButton = {
-                    TextButton(onClick = {
-                        // 확인 버튼 로직
-                        showDialog = false
-                    },
-                        enabled = inputDate.isNotBlank()
+                    TextButton(
+                        onClick = {
+                            datePickerState.selectedDateMillis?.let { timestamp ->
+                                val date = SimpleDateFormat(
+                                    "yyyy-MM-dd",
+                                    Locale.getDefault()
+                                ).format(Date(timestamp))
+                                onDateSelected(date)
+                            }
+                            showDialog = false
+                        }
                     ) {
                         Text("확인")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = {
-                        showDialog = false
-                        inputDate = "" // 입력 초기화
-                    }) {
+                    TextButton(
+                        onClick = { showDialog = false }
+                    ) {
                         Text("취소")
                     }
                 }
-            )
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
+
 
         // 카메라 프리뷰 영역
         Box(

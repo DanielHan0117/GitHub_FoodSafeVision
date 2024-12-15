@@ -144,7 +144,8 @@ fun FoodScanner(
     barcodeRepository: BarcodeRepository,
     onBarcodeDetected: (Any?, Any?) -> Unit,
     onObjectDetected: (String) -> Unit = {},
-    onTextInput: (String) -> Unit = {}
+    onTextInput: (String) -> Unit = {},
+    onClickedDismiss: () -> Unit = {}
 ) {
     var foodName by remember { mutableStateOf("") }
     var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
@@ -255,7 +256,7 @@ fun FoodScanner(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             TextButton(
-                onClick = { /* 취소 로직 */ },
+                onClick = { onClickedDismiss() },
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
                 Text("취소")

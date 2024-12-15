@@ -3,7 +3,6 @@ package com.example.foodsafevision
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -28,7 +27,18 @@ import com.example.foodsafevision.data.repository.BarcodeRepository
 import com.example.foodsafevision.ui.theme.FoodSafeVisionTheme
 import kotlinx.coroutines.launch
 import android.Manifest
-
+import android.database.sqlite.SQLiteConstraintException
+import android.util.Log
+import androidx.room.Room
+import com.example.foodsafevision.data.database.FoodDatabase
+import com.example.foodsafevision.data.model.FoodEntity
+import com.example.foodsafevision.data.repository.FoodRepository
+import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.foodsafevision.data.database.TagDatabase
+import com.example.foodsafevision.data.repository.TagRepository
+import com.example.foodsafevision.viewmodel.FoodViewModel
+import com.example.foodsafevision.viewmodel.FoodViewModelFactory
 
 class MainActivity : ComponentActivity() {
     private val PERMISSION_REQUEST_CODE = 100
@@ -37,6 +47,9 @@ class MainActivity : ComponentActivity() {
     )
 
     private lateinit var barcodeRepository: BarcodeRepository
+    private lateinit var foodRepository: FoodRepository
+    private lateinit var tagRepository: TagRepository
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,12 +68,23 @@ class MainActivity : ComponentActivity() {
             val allBarcodes = barcodeRepository.getAllBarcodes()
         }
 
+        // 음식 데이터베이스 초기화 및 JSON 데이터 로드
+        val foodDatabase = Room.databaseBuilder(
+            this,
+            FoodDatabase::class.java,
+            "food_database"
+        ).build()
+        // Repository 초기화
+        foodRepository = FoodRepository(foodDatabase.foodDao())
+
+        // 태그 데이터베이스 초기화
+        val tagDatabase = TagDatabase.getDatabase(this)
+        tagRepository = TagRepository(tagDatabase.tagDao())
 
         window.statusBarColor = androidx.compose.ui.graphics.Color.Black.toArgb()
         setContent {
             FoodSafeVisionTheme {
                 val navController = rememberNavController()
-                val foodList = remember { createSampleFoodList() }
                 var showBarcodeDialog by remember { mutableStateOf(false) }
                 var showAutoDialog by remember { mutableStateOf(false) }
                 var scannedBarcode by remember { mutableStateOf<String?>(null) }
@@ -70,12 +94,13 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = "foodScanner"
+                    startDestination = "foodListScreen"
                 ) {
                     composable("foodListScreen") {
                         FoodListScreen(
-                            foodList = foodList,
-                            onCheckFood = {
+                            foodRepository = foodRepository,
+                            tagRepository = tagRepository,
+                            onAddFood = {
                                 navController.navigate("foodScanner")
                             },
                             onMenuClick = {
@@ -99,8 +124,13 @@ class MainActivity : ComponentActivity() {
                             },
                             onTextInput = { inputText ->
                                 foodName = inputText
-                                showDateDialog = true
+                                showAutoDialog = true
                                 navController.navigate("dateScanner")
+                            },
+                            onClickedDismiss = {
+                                navController.navigate("foodListScreen") {
+                                    popUpTo("foodScanner") { inclusive = true }
+                                }
                             }
                         )
 
@@ -118,6 +148,39 @@ class MainActivity : ComponentActivity() {
                                 onDismiss = { showAutoDialog = false }
                             )
                         }
+                    }
+                    composable("dateScanner") {
+                        val viewModel: FoodViewModel = viewModel(
+                            factory = FoodViewModelFactory(foodRepository)
+                        )
+
+                        DateScanner(
+                            onDateDetected = {
+                                //navController.navigate("registerFood")
+                            },
+                            onDateSelected = { selectedDate ->
+                                expirationDate = selectedDate
+                                showDateDialog = true
+
+                                // Food 데이터베이스에 새 항목 추가
+                                viewModel.insertFood(
+                                    FoodEntity(
+                                        barcodeNumber = null.toString(),
+                                        foodName = foodName ?: "",
+                                        expirationDate = selectedDate,
+                                        tag = "나의 냉장고",
+                                        quantity = 1
+                                    )
+                                )
+
+                                //navController.navigate("registerFood")
+                            },
+                            onClickedDismiss = {
+                                navController.navigate("foodListScreen") {
+                                    popUpTo("foodScanner") { inclusive = true }
+                                }
+                            }
+                        )
 
                         if (showDateDialog) {
                             DateDetectionDialog(
@@ -125,16 +188,6 @@ class MainActivity : ComponentActivity() {
                                 onDismiss = { showDateDialog = false }
                             )
                         }
-                    }
-                    composable("dateScanner") {
-                        DateScanner(
-                            onDateDetected = {
-                                navController.navigate("???")
-                            },
-                            onTextInput = {
-                                navController.navigate("???")
-                            }
-                        )
                     }
                 }
             }
