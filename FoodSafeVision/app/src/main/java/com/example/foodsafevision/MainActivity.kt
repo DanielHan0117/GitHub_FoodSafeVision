@@ -37,19 +37,23 @@ import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodsafevision.data.database.TagDatabase
 import com.example.foodsafevision.data.repository.TagRepository
+import com.example.foodsafevision.util.NotificationHelper
 import com.example.foodsafevision.viewmodel.FoodViewModel
 import com.example.foodsafevision.viewmodel.FoodViewModelFactory
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class MainActivity : ComponentActivity() {
     private val PERMISSION_REQUEST_CODE = 100
     private val requiredPermissions = arrayOf(
-        Manifest.permission.CAMERA
+        Manifest.permission.CAMERA,
+        Manifest.permission.POST_NOTIFICATIONS
     )
 
     private lateinit var barcodeRepository: BarcodeRepository
     private lateinit var foodRepository: FoodRepository
     private lateinit var tagRepository: TagRepository
-
+    private lateinit var notificationHelper: NotificationHelper
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +84,24 @@ class MainActivity : ComponentActivity() {
         // 태그 데이터베이스 초기화
         val tagDatabase = TagDatabase.getDatabase(this)
         tagRepository = TagRepository(tagDatabase.tagDao())
+
+        // 알림 헬퍼 초기화
+        notificationHelper = NotificationHelper(this)
+
+        // 유통기한 체크 및 알림 설정
+        lifecycleScope.launch {
+            foodRepository.getAllFoods().collect { foodList ->
+                val currentDate = LocalDate.now()
+                foodList.forEach { food ->
+                    val expirationDate = LocalDate.parse(food.expirationDate)
+                    val daysUntilExpiry = ChronoUnit.DAYS.between(currentDate, expirationDate)
+
+                    if (daysUntilExpiry in 0..7) {
+                        notificationHelper.scheduleNotification(food, daysUntilExpiry)
+                    }
+                }
+            }
+        }
 
         window.statusBarColor = androidx.compose.ui.graphics.Color.Black.toArgb()
         setContent {

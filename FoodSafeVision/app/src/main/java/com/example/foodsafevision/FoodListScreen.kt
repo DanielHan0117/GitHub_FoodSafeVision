@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ import com.example.foodsafevision.data.model.FoodEntity
 import com.example.foodsafevision.data.model.TagEntity
 import com.example.foodsafevision.data.repository.FoodRepository
 import com.example.foodsafevision.data.repository.TagRepository
+import com.example.foodsafevision.util.NotificationHelper
 import com.example.foodsafevision.viewmodel.FoodViewModel
 import com.example.foodsafevision.viewmodel.FoodViewModelFactory
 import com.example.foodsafevision.viewmodel.TagViewModel
@@ -74,6 +76,9 @@ fun FoodListScreen(
     var selectedFood by remember { mutableStateOf<FoodEntity?>(null) }
     var inputTag by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+
+    val context = LocalContext.current
+    val notificationHelper = remember { NotificationHelper(context) }
 
     Scaffold(
         containerColor = Color.White,
