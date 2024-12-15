@@ -26,4 +26,10 @@ interface FoodDao {
 
     @Query("SELECT * FROM foods WHERE tag = :storage")
     fun getFoodsByTag(storage: String): Flow<List<FoodEntity>>
+
+    @Query("SELECT COUNT(*) FROM foods WHERE tag = :tag")
+    suspend fun getFoodsCountByTag(tag: String): Int
+
+    @Query("UPDATE foods SET tag = :newTag WHERE tag = :oldTag")
+    suspend fun updateFoodsTag(oldTag: String, newTag: String)
 }

@@ -5,9 +5,30 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.foodsafevision.data.model.FoodEntity
 import com.example.foodsafevision.data.repository.FoodRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class FoodViewModel(private val foodRepository: FoodRepository) : ViewModel() {
+    private val _allFoods = MutableStateFlow<List<FoodEntity>>(emptyList())
+    val allFoods: StateFlow<List<FoodEntity>> = _allFoods.asStateFlow()
+
+    fun refreshFoods() {
+        viewModelScope.launch {
+            foodRepository.getAllFoods().collect { foods ->
+                _allFoods.value = foods
+            }
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            foodRepository.getAllFoods().collect { foods ->
+                _allFoods.value = foods
+            }
+        }
+    }
 
     fun insertFood(food: FoodEntity) {
         viewModelScope.launch {
@@ -27,13 +48,17 @@ class FoodViewModel(private val foodRepository: FoodRepository) : ViewModel() {
         }
     }
 
-    fun getAllFoods() = foodRepository.getAllFoods()
-
     fun getFoodByBarcode(barcode: String) = foodRepository.getFoodByBarcode(barcode)
 
     fun getFoodsByExpirationDate(date: String) = foodRepository.getFoodsByExpirationDate(date)
 
     fun getFoodsByStorage(storage: String) = foodRepository.getFoodsByStorage(storage)
+
+    fun updateFoodsTag(oldTag: String, newTag: String) {
+        viewModelScope.launch {
+            foodRepository.updateFoodsTag(oldTag, newTag)
+        }
+    }
 }
 
 class FoodViewModelFactory(

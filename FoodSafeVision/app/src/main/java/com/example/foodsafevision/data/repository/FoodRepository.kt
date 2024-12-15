@@ -33,4 +33,12 @@ class FoodRepository(private val foodDao: FoodDao) {
     fun getFoodsByStorage(storage: String): Flow<List<FoodEntity>> {
         return foodDao.getFoodsByTag(storage)
     }
+
+    suspend fun hasFoodsWithTag(tag: String): Boolean {
+        return foodDao.getFoodsCountByTag(tag) > 0
+    }
+
+    suspend fun updateFoodsTag(oldTag: String, newTag: String) {
+        foodDao.updateFoodsTag(oldTag, newTag)
+    }
 }

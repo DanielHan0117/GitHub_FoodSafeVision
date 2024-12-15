@@ -97,11 +97,16 @@ class MainActivity : ComponentActivity() {
                     val daysUntilExpiry = ChronoUnit.DAYS.between(currentDate, expirationDate)
 
                     if (daysUntilExpiry in 0..7) {
-                        notificationHelper.scheduleNotification(food, daysUntilExpiry)
+                        notificationHelper.scheduleNotification(
+                            food,
+                            daysUntilExpiry.toInt(),
+                            true
+                        )
                     }
                 }
             }
         }
+
 
         window.statusBarColor = androidx.compose.ui.graphics.Color.Black.toArgb()
         setContent {
@@ -124,9 +129,6 @@ class MainActivity : ComponentActivity() {
                             tagRepository = tagRepository,
                             onAddFood = {
                                 navController.navigate("foodScanner")
-                            },
-                            onMenuClick = {
-                                // 메뉴 열기 로직
                             }
                         )
                     }

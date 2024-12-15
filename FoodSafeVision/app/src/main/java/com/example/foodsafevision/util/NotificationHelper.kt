@@ -8,8 +8,11 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.RequiresApi
 import com.example.foodsafevision.data.model.FoodEntity
 import com.example.foodsafevision.receiver.NotificationReceiver
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.Calendar
 
 class NotificationHelper(private val context: Context) {
@@ -36,8 +39,15 @@ class NotificationHelper(private val context: Context) {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("ScheduleExactAlarm")
-    fun scheduleNotification(food: FoodEntity, daysUntilExpiry: Long) {
+    fun scheduleNotification(food: FoodEntity, dDayPeriod: Int, isEnabled: Boolean) {
+        if (!isEnabled) return
+
+        val currentDate = LocalDate.now()
+        val expirationDate = LocalDate.parse(food.expirationDate)
+        val daysUntilExpiry = ChronoUnit.DAYS.between(currentDate, expirationDate)
+
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("foodName", food.foodName)
             putExtra("daysUntilExpiry", daysUntilExpiry)

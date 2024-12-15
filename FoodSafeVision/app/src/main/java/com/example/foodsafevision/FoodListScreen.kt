@@ -1,6 +1,7 @@
 package com.example.foodsafevision
 
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,6 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodsafevision.data.model.FoodEntity
 import com.example.foodsafevision.data.model.TagEntity
@@ -45,6 +48,7 @@ import com.example.foodsafevision.viewmodel.FoodViewModel
 import com.example.foodsafevision.viewmodel.FoodViewModelFactory
 import com.example.foodsafevision.viewmodel.TagViewModel
 import com.example.foodsafevision.viewmodel.TagViewModelFactory
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -59,17 +63,22 @@ import kotlin.math.abs
 fun FoodListScreen(
     foodRepository: FoodRepository,
     tagRepository: TagRepository,
-    onAddFood: () -> Unit,
-    onMenuClick: () -> Unit
+    onAddFood: () -> Unit
 ) {
     val foodViewModel: FoodViewModel = viewModel(
         factory = FoodViewModelFactory(foodRepository)
     )
     val tagViewModel: TagViewModel = viewModel(
-        factory = TagViewModelFactory(tagRepository)
+        factory = TagViewModelFactory(tagRepository, foodRepository)
     )
 
-    val foodList by foodViewModel.getAllFoods().collectAsState(initial = emptyList())
+    LaunchedEffect(Unit) {
+        tagViewModel.refreshTags()
+        foodViewModel.refreshFoods()
+    }
+    var tagSectionKey by remember { mutableStateOf(0) }
+
+    val foodList by foodViewModel.allFoods.collectAsState(initial = emptyList())
     val tags by tagViewModel.allTags.collectAsState(initial = emptyList())
     var selectedTag by remember { mutableStateOf("나의 냉장고") }
     var showAddTagDialog by remember { mutableStateOf(false) }
@@ -77,6 +86,10 @@ fun FoodListScreen(
     var selectedFood by remember { mutableStateOf<FoodEntity?>(null) }
     var inputTag by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var dDayPeriod by remember { mutableStateOf(7) }
+    var isNotificationEnabled by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
     val notificationHelper = remember { NotificationHelper(context) }
@@ -92,7 +105,7 @@ fun FoodListScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = onMenuClick) {
+                            IconButton(onClick = { showSettingsDialog = true }) {
                                 Icon(Icons.Default.Menu, contentDescription = "메뉴")
                             }
                             Text(
@@ -121,23 +134,34 @@ fun FoodListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            TagSection(
-                tags = tags.map { it }, // TagEntity의 name만 추출
-                selectedTag = selectedTag,
-                tagViewModel = tagViewModel,
-                onTagSelected = { tag -> selectedTag = tag },
-                onAddTag = { showAddTagDialog = true },
-                onEditTag = { oldTag, newTag ->
-                    tagViewModel.updateTag(TagEntity(name = oldTag).toString(), newTag)
-                    if (selectedTag == oldTag) selectedTag = newTag
-                },
-                onDeleteTag = { tagToDelete ->
-                    tagViewModel.deleteTag(tagToDelete)
-                    if (selectedTag == tagToDelete) {
-                        selectedTag = tags.firstOrNull() ?: ""
+            key(tagSectionKey) {
+                TagSection(
+                    tags = tags.map { it },
+                    selectedTag = selectedTag,
+                    tagViewModel = tagViewModel,
+                    foodViewModel = foodViewModel,
+                    onTagSelected = { tag ->
+                        selectedTag = tag
+                        foodViewModel.refreshFoods()
+                    },
+                    onAddTag = { showAddTagDialog = true },
+                    onEditTag = { oldTag, newTag ->
+                        tagViewModel.updateTag(oldTag, newTag)
+                        if (selectedTag == oldTag) {
+                            selectedTag = newTag
+                        }
+                        foodViewModel.updateFoodsTag(oldTag, newTag)
+                        tagSectionKey++
+                    },
+                    onDeleteTag = { tagToDelete ->
+                        tagViewModel.deleteTag(tagToDelete)
+                        if (selectedTag == tagToDelete) {
+                            selectedTag = tags.firstOrNull() ?: ""
+                        }
+                        tagSectionKey++
                     }
-                }
-            )
+                )
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -147,7 +171,8 @@ fun FoodListScreen(
                         onClick = {
                             selectedFood = food
                             showEditFoodDialog = true
-                        }
+                        },
+                        dDayPeriod = dDayPeriod
                     )
                 }
             }
@@ -214,6 +239,15 @@ fun FoodListScreen(
             }
         )
     }
+
+    SettingsDialog(
+        showDialog = showSettingsDialog,
+        onDismiss = { showSettingsDialog = false },
+        currentDDayPeriod = dDayPeriod,
+        onDDayPeriodChange = { dDayPeriod = it },
+        isNotificationEnabled = isNotificationEnabled,
+        onNotificationToggle = { isNotificationEnabled = it }
+    )
 }
 
 @Composable
@@ -221,6 +255,7 @@ fun TagSection(
     tags: List<String>,
     selectedTag: String,
     tagViewModel: TagViewModel,
+    foodViewModel: FoodViewModel,
     onTagSelected: (String) -> Unit,
     onAddTag: () -> Unit,
     onEditTag: (String, String) -> Unit,
@@ -229,6 +264,8 @@ fun TagSection(
     var showEditTagDialog by remember { mutableStateOf(false) }
     var editingTag by remember { mutableStateOf("") }
     var editedTagName by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     Row(
         modifier = Modifier
@@ -283,15 +320,40 @@ fun TagSection(
                     Text("태그 설정", style = MaterialTheme.typography.titleLarge)
                     IconButton(
                         onClick = {
-                            tagViewModel.deleteTag(editingTag)
-                            if (selectedTag == editingTag) {
-                                onTagSelected(tags.firstOrNull() ?: "")
+                            coroutineScope.launch {
+                                when (tagViewModel.canDeleteTag(editingTag)) {
+                                    is TagViewModel.DeleteTagResult.Success -> {
+                                        if (selectedTag == editingTag) {
+                                            val nextTag =
+                                                tags.firstOrNull { it != editingTag } ?: ""
+                                            onTagSelected(nextTag)
+                                        }
+                                        tagViewModel.deleteTag(editingTag)
+                                        showEditTagDialog = false
+                                    }
+
+                                    is TagViewModel.DeleteTagResult.LastTag -> {
+                                        Toast.makeText(
+                                            context,
+                                            "마지막 태그는 삭제할 수 없습니다",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+
+                                    is TagViewModel.DeleteTagResult.HasFoods -> {
+                                        Toast.makeText(
+                                            context,
+                                            "이 태그에 등록된 음식이 있어 삭제할 수 없습니다",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             }
-                            showEditTagDialog = false
                         }
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = "삭제")
                     }
+
                 }
             },
             text = {
@@ -305,12 +367,18 @@ fun TagSection(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        tagViewModel.updateTag(editingTag, editedTagName)
-                        if (selectedTag == editingTag) {
-                            onTagSelected(editedTagName)
+                        coroutineScope.launch {
+                            tagViewModel.updateTag(editingTag, editedTagName)
+                            foodViewModel.updateFoodsTag(editingTag, editedTagName)
+                            onEditTag(editingTag, editedTagName)
+                            if (selectedTag == editingTag) {
+                                onTagSelected(editedTagName)
+                            }
+                            tagViewModel.refreshTags()
+                            showEditTagDialog = false
                         }
-                        showEditTagDialog = false
-                    }
+                    },
+                    enabled = editedTagName.isNotBlank()
                 ) {
                     Text("확인")
                 }
@@ -360,7 +428,7 @@ fun Tag(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FoodItem(food: FoodEntity, onClick: () -> Unit) {
+fun FoodItem(food: FoodEntity, onClick: () -> Unit, dDayPeriod: Int) {
     val currentDate = LocalDate.now()
     val expirationDate = LocalDate.parse(food.expirationDate)
     val daysUntilExpiry = ChronoUnit.DAYS.between(currentDate, expirationDate)
@@ -405,7 +473,7 @@ fun FoodItem(food: FoodEntity, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = when {
-                        daysUntilExpiry <= 7 -> Color.Red
+                        daysUntilExpiry <= dDayPeriod -> Color.Red
                         else -> Color.Black
                     }
                 )
@@ -497,7 +565,7 @@ fun EditFoodDialog(
                 TextField(
                     value = editedName,
                     onValueChange = { editedName = it },
-                    placeholder = { Text("음식명") },
+                    placeholder = { Text(food.foodName) },
                     leadingIcon = {
                         Icon(Icons.Default.Edit, contentDescription = "음식명")
                     },
@@ -540,13 +608,13 @@ fun EditFoodDialog(
                 TextField(
                     value = editedQuantityText,
                     onValueChange = { newValue ->
-                        editedQuantityText = newValue
-                        if (newValue.isNotEmpty()) {
-                            newValue.toIntOrNull()?.let {
-                                if (it >= 0) editedQuantity = it
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull()?.let { it > 0 } == true)) {
+                            editedQuantityText = newValue
+                            if (newValue.isNotEmpty()) {
+                                newValue.toIntOrNull()?.let {
+                                    if (it > 0) editedQuantity = it
+                                }
                             }
-                        } else {
-                            editedQuantity = 0
                         }
                     },
                     placeholder = { Text("수량") },
@@ -599,11 +667,12 @@ fun EditFoodDialog(
                         foodName = editedName,
                         expirationDate = editedExpiryDate,
                         tag = editedTag,
-                        quantity = if (editedQuantity == 0) 1 else editedQuantity
+                        quantity = editedQuantity
                     )
                     onConfirm(editedFood)
                     onDismiss()
-                }
+                },
+                enabled = editedName.isNotBlank() && editedQuantity.toString().isNotBlank()
             ) {
                 Text("확인")
             }
@@ -614,6 +683,92 @@ fun EditFoodDialog(
             }
         }
     )
+}
+
+@Composable
+fun SettingsDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    currentDDayPeriod: Int,
+    onDDayPeriodChange: (Int) -> Unit,
+    isNotificationEnabled: Boolean,
+    onNotificationToggle: (Boolean) -> Unit
+) {
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("설정", style = MaterialTheme.typography.headlineMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("D-Day", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            NumberPicker(
+                                value = currentDDayPeriod,
+                                onValueChange = onDDayPeriodChange,
+                                range = 1..30
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("알림 설정", style = MaterialTheme.typography.titleMedium)
+                        Switch(
+                            checked = isNotificationEnabled,
+                            onCheckedChange = onNotificationToggle
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("확인")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun NumberPicker(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    range: IntRange
+) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = {
+                if (value > range.first) onValueChange(value - 1)
+            }
+        ) {
+            Text("-", style = MaterialTheme.typography.headlineLarge)
+        }
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleLarge
+        )
+        IconButton(
+            onClick = {
+                if (value < range.last) onValueChange(value + 1)
+            }
+        ) {
+            Text("+", style = MaterialTheme.typography.headlineMedium)
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
