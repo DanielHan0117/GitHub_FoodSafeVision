@@ -17,7 +17,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.LaunchedEffect
 
 @Composable
-fun DateScanner() {
+fun DateScanner(
+    onDateDetected: () -> Unit = {},
+    onTextInput: () -> Unit = {}
+) {
     var showDialog by remember { mutableStateOf(false) }
     var inputDate by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }

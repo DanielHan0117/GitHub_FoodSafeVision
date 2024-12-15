@@ -61,9 +61,12 @@ class MainActivity : ComponentActivity() {
             FoodSafeVisionTheme {
                 val navController = rememberNavController()
                 val foodList = remember { createSampleFoodList() }
-                var showDialog by remember { mutableStateOf(false) }
+                var showBarcodeDialog by remember { mutableStateOf(false) }
+                var showAutoDialog by remember { mutableStateOf(false) }
                 var scannedBarcode by remember { mutableStateOf<String?>(null) }
-                var scannedProductName by remember { mutableStateOf<String?>(null) }
+                var foodName by remember { mutableStateOf<String?>(null) }
+                var expirationDate by remember { mutableStateOf<String?>(null) }
+                var showDateDialog by remember { mutableStateOf(false) }
 
                 NavHost(
                     navController = navController,
@@ -85,21 +88,53 @@ class MainActivity : ComponentActivity() {
                             barcodeRepository = barcodeRepository,
                             onBarcodeDetected = { barcode, productName ->
                                 scannedBarcode = barcode.toString()
-                                scannedProductName = productName.toString()
-                                showDialog = true
+                                foodName = productName.toString()
+                                showBarcodeDialog = true
+                                navController.navigate("dateScanner")
+                            },
+                            onObjectDetected = { detectedLabel ->
+                                foodName = detectedLabel
+                                showAutoDialog = true
+                                navController.navigate("dateScanner")
+                            },
+                            onTextInput = { inputText ->
+                                foodName = inputText
+                                showDateDialog = true
+                                navController.navigate("dateScanner")
                             }
                         )
 
-                        if (showDialog) {
+                        if (showBarcodeDialog) {
                             BarcodeResultDialog(
                                 barcodeNumber = scannedBarcode ?: "",
-                                productName = scannedProductName,
-                                onDismiss = { showDialog = false }
+                                productName = foodName,
+                                onDismiss = { showBarcodeDialog = false }
+                            )
+                        }
+
+                        if (showAutoDialog) {
+                            ObjectDetectionDialog(
+                                detectedLabel = foodName ?: "",
+                                onDismiss = { showAutoDialog = false }
+                            )
+                        }
+
+                        if (showDateDialog) {
+                            DateDetectionDialog(
+                                detectedDate = expirationDate ?: "",
+                                onDismiss = { showDateDialog = false }
                             )
                         }
                     }
                     composable("dateScanner") {
-                        DateScanner()
+                        DateScanner(
+                            onDateDetected = {
+                                navController.navigate("???")
+                            },
+                            onTextInput = {
+                                navController.navigate("???")
+                            }
+                        )
                     }
                 }
             }
@@ -159,6 +194,27 @@ fun ObjectDetectionDialog(
         text = {
             Column {
                 Text("인식된 객체: $detectedLabel")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        }
+    )
+}
+
+@Composable
+fun DateDetectionDialog(
+    detectedDate: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("유통기한 인식 결과") },
+        text = {
+            Column {
+                Text("인식된 유통기한: $detectedDate")
             }
         },
         confirmButton = {

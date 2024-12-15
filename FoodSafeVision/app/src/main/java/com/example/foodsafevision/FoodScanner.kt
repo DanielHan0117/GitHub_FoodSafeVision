@@ -88,11 +88,6 @@ private fun Image.toBitmap(): Bitmap {
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
-private fun getClassName(index: Int): String {
-    // 클래스 이름 매핑 (실제 구현 필요)
-    return "Food_$index"
-}
-
 // 레이블 로딩 함수
 private fun loadLabels(context: Context): Map<Int, String> {
     val foodLabels = mapOf(
@@ -147,9 +142,11 @@ private fun loadLabels(context: Context): Map<Int, String> {
 @Composable
 fun FoodScanner(
     barcodeRepository: BarcodeRepository,
-    onBarcodeDetected: (Any?, Any?) -> Unit = { any: Any?, any1: Any? -> },  // 바코드 감지 콜백
-    onObjectDetected: (String) -> Unit = {}  // 콜백 수정
+    onBarcodeDetected: (Any?, Any?) -> Unit,
+    onObjectDetected: (String) -> Unit = {},
+    onTextInput: (String) -> Unit = {}
 ) {
+    var foodName by remember { mutableStateOf("") }
     var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
     var showDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
@@ -168,12 +165,11 @@ fun FoodScanner(
     var barcodeValue by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
-
     var shouldAnalyzeImage by remember { mutableStateOf(false) }
 
     // PyTorch 모듈 초기화
     val context = LocalContext.current
-    val labels = remember { loadLabels(context) }
+    var labels by remember { mutableStateOf(emptyMap<Int, String>()) }
     val module = try {
         val path = assetFilePath(context, "mobilenet_v3_small.pt")
         Log.d("FoodScanner", "모델 파일 경로: $path")
@@ -185,20 +181,16 @@ fun FoodScanner(
         null
     }
 
-
     // 이미지 분석 로직
     fun analyzeImage(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (module == null) Log.e("FoodScanner", "모듈이 null입니다")
         if (mediaImage != null && module != null) {
             try {
-                Log.d("FoodScanner", "이미지 변환 시작")
                 val bitmap = mediaImage.toBitmap()
                 val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
-                Log.d("FoodScanner", "이미지 리사이즈 완료: ${resizedBitmap.width}x${resizedBitmap.height}")
 
                 // 이미지를 Float 배열로 변환
-                Log.d("FoodScanner", "텐서 변환 시작")
                 val floatArray = FloatArray(3 * 224 * 224)
                 var index = 0
                 for (y in 0 until 224) {
@@ -213,21 +205,16 @@ fun FoodScanner(
                         floatArray[index++] = (b / 255f - 0.406f) / 0.225f
                     }
                 }
-                Log.d("FoodScanner", "텐서 변환 완료")
 
                 // 텐서 생성
-                Log.d("FoodScanner", "PyTorch 텐서 생성 시작")
                 val inputTensor = Tensor.fromBlob(
                     floatArray,
                     longArrayOf(1, 3, 224, 224)
                 )
-                Log.d("FoodScanner", "PyTorch 텐서 생성 완료")
 
                 // 추론 실행
-                Log.d("FoodScanner", "모델 추론 시작")
                 val outputTensor = module.forward(IValue.from(inputTensor)).toTensor()
                 val scores = outputTensor.dataAsFloatArray
-                Log.d("FoodScanner", "모델 추론 완료: ${scores.size}개의 클래스")
 
                 // 최대값 찾기
                 var maxScore = Float.NEGATIVE_INFINITY
@@ -240,11 +227,8 @@ fun FoodScanner(
                     }
                 }
 
-                Log.d("FoodScanner", "분류 결과: 클래스 $maxScoreIdx (점수: $maxScore)")
-
                 // 레이블 이름으로 결과 전달
                 val detectedLabel = labels[maxScoreIdx] ?: "알 수 없음"
-                Log.d("FoodScanner", "분류 결과: 클래스 $detectedLabel")
                 onObjectDetected(detectedLabel)
 
             } catch (e: Exception) {
@@ -257,17 +241,6 @@ fun FoodScanner(
             imageProxy.close()
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 
     Column(
         modifier = Modifier
@@ -325,8 +298,11 @@ fun FoodScanner(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            // 확인 버튼 로직
-                            showDialog = false
+                            if (inputText.isNotBlank()) {
+                                foodName = inputText
+                                showDialog = false
+                                onTextInput(inputText)
+                            }
                         },
                         enabled = inputText.isNotBlank()
                     ) {
@@ -462,7 +438,14 @@ fun FoodScanner(
             ModeButton(
                 text = "자동 인식",
                 isSelected = currentMode == FoodMode.Auto_Recognition,
-                onClick = { currentMode = FoodMode.Auto_Recognition },
+                onClick = {
+                    if (currentMode != FoodMode.Auto_Recognition) {
+                        currentMode = FoodMode.Auto_Recognition
+                        if (labels.isEmpty()) {
+                            labels = loadLabels(context)
+                        }
+                    }
+                },
                 modifier = Modifier.weight(1f)
             )
         }
