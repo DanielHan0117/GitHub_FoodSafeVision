@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.text.font.FontWeight
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -80,7 +81,15 @@ fun DateScanner(
                     }
                 }
             ) {
-                DatePicker(state = datePickerState)
+                DatePicker(
+                    state = datePickerState,
+                    title = {
+                        Text(
+                            "\n      유통기한 날짜 선택",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                )
             }
         }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -434,7 +435,12 @@ fun EditFoodDialog(
     var editedTag by remember { mutableStateOf(food.tag) }
     var expanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = LocalDate.parse(editedExpiryDate)
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    )
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -460,7 +466,15 @@ fun EditFoodDialog(
                 }
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(
+                state = datePickerState,
+                title = {
+                    Text(
+                        "\n      유통기한 날짜 선택",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            )
         }
     }
 
@@ -483,27 +497,56 @@ fun EditFoodDialog(
                 TextField(
                     value = editedName,
                     onValueChange = { editedName = it },
+                    placeholder = { Text("음식명") },
                     leadingIcon = {
                         Icon(Icons.Default.Edit, contentDescription = "음식명")
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-                TextField(
-                    value = editedExpiryDate,
-                    onValueChange = { },
-                    readOnly = true,
-                    leadingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "날짜 선택")
-                        }
-                    },
+
+                Box(
                     modifier = Modifier.fillMaxWidth()
-                )
+                ) {
+                    TextField(
+                        value = editedExpiryDate,
+                        onValueChange = { },
+                        enabled = false,
+                        readOnly = true,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = "날짜 선택",
+                                tint = Color.Black
+                            )
+                        },
+                        colors = TextFieldDefaults.colors(
+                            disabledTextColor = Color.Black,
+                            disabledLeadingIconColor = Color.Black,
+                            disabledIndicatorColor = Color.Gray,
+                            disabledContainerColor = Color.Unspecified
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                showDatePicker = true
+                            }
+                    )
+                }
+
+                var editedQuantityText by remember { mutableStateOf(food.quantity.toString()) }
                 TextField(
-                    value = editedQuantity.toString(),
+                    value = editedQuantityText,
                     onValueChange = { newValue ->
-                        newValue.toIntOrNull()?.let {
-                            if (it > 0) editedQuantity = it
+                        editedQuantityText = newValue
+                        if (newValue.isNotEmpty()) {
+                            newValue.toIntOrNull()?.let {
+                                if (it >= 0) editedQuantity = it
+                            }
+                        } else {
+                            editedQuantity = 0
                         }
                     },
                     placeholder = { Text("수량") },
@@ -556,7 +599,7 @@ fun EditFoodDialog(
                         foodName = editedName,
                         expirationDate = editedExpiryDate,
                         tag = editedTag,
-                        quantity = editedQuantity
+                        quantity = if (editedQuantity == 0) 1 else editedQuantity
                     )
                     onConfirm(editedFood)
                     onDismiss()
