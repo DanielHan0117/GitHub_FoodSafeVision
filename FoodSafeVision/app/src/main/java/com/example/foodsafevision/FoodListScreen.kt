@@ -19,11 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +32,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -54,6 +52,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.TimeZone
 import kotlin.math.abs
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -129,7 +128,11 @@ fun FoodListScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = { showSettingsDialog = true }) {
-                                Icon(Icons.Default.Menu, contentDescription = "메뉴")
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = "메뉴",
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                             Text(
                                 text = getCurrentDate(),
@@ -137,7 +140,11 @@ fun FoodListScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             IconButton(onClick = onAddFood) {
-                                Icon(Icons.Default.Add, contentDescription = "추가")
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "음식 추가",
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         }
                     },
@@ -412,7 +419,10 @@ fun TagSection(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "삭제")
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "태그 삭제"
+                        )
                     }
 
                 }
@@ -558,18 +568,19 @@ fun EditFoodDialog(
     onConfirm: (FoodEntity) -> Unit,
     onDelete: () -> Unit
 ) {
-    var editedName by remember { mutableStateOf(food.foodName) }
-    var editedExpiryDate by remember { mutableStateOf(food.expirationDate) }
-    var editedQuantity by remember { mutableStateOf(food.quantity) }
+    var editedFoodName by remember { mutableStateOf(food.foodName) }
+    var editedExpirationDate by remember { mutableStateOf(food.expirationDate) }
+    var editedQuantity by remember { mutableStateOf(food.quantity.toString()) }
     var editedTag by remember { mutableStateOf(food.tag) }
     var expanded by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = LocalDate.parse(editedExpiryDate)
-            .atStartOfDay(ZoneId.systemDefault())
+        initialSelectedDateMillis = LocalDate.parse(editedExpirationDate)
+            .atStartOfDay(ZoneId.of("Asia/Seoul"))
             .toInstant()
             .toEpochMilli()
+            .plus(TimeZone.getDefault().rawOffset)
     )
 
     if (showDatePicker) {
@@ -582,7 +593,7 @@ fun EditFoodDialog(
                             val localDate = Instant.ofEpochMilli(timestamp)
                                 .atZone(ZoneId.systemDefault())
                                 .toLocalDate()
-                            editedExpiryDate = localDate.toString()
+                            editedExpirationDate = localDate.toString()
                         }
                         showDatePicker = false
                     }
@@ -618,18 +629,41 @@ fun EditFoodDialog(
             ) {
                 Text("음식 수정", style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "삭제")
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "음식 삭제"
+                    )
                 }
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
-                    value = editedName,
-                    onValueChange = { editedName = it },
+                    value = food.barcodeNumber,
+                    onValueChange = { },
+                    enabled = false,
+                    readOnly = true,
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.barcode_icon),
+                            contentDescription = "Barcode Icon",
+                            modifier = Modifier.size(24.dp),
+                            tint = if (food.barcodeNumber.isBlank()) Color.Gray else Color.Black
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(0.95f)
+                )
+
+                TextField(
+                    value = editedFoodName,
+                    onValueChange = { editedFoodName = it },
                     placeholder = { Text(food.foodName) },
                     leadingIcon = {
-                        Icon(Icons.Default.Edit, contentDescription = "음식명")
+                        Icon(
+                            painter = painterResource(id = R.drawable.food_icon),
+                            contentDescription = "음식명 수정",
+                            modifier = Modifier.size(24.dp)
+                        )
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -638,13 +672,14 @@ fun EditFoodDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = editedExpiryDate,
+                        value = editedExpirationDate,
                         onValueChange = { },
                         enabled = false,
                         readOnly = true,
                         leadingIcon = {
                             Icon(
                                 Icons.Default.DateRange,
+                                modifier = Modifier.size(24.dp),
                                 contentDescription = "날짜 선택",
                                 tint = Color.Black
                             )
@@ -666,27 +701,6 @@ fun EditFoodDialog(
                     )
                 }
 
-                var editedQuantityText by remember { mutableStateOf(food.quantity.toString()) }
-                TextField(
-                    value = editedQuantityText,
-                    onValueChange = { newValue ->
-                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull()?.let { it > 0 } == true)) {
-                            editedQuantityText = newValue
-                            if (newValue.isNotEmpty()) {
-                                newValue.toIntOrNull()?.let {
-                                    if (it > 0) editedQuantity = it
-                                }
-                            }
-                        }
-                    },
-                    placeholder = { Text("수량") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Check, contentDescription = "수량")
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded },
@@ -696,7 +710,11 @@ fun EditFoodDialog(
                         onValueChange = { },
                         readOnly = true,
                         leadingIcon = {
-                            Icon(Icons.Default.List, contentDescription = "태그")
+                            Icon(
+                                painter = painterResource(id = R.drawable.tag_icon),
+                                contentDescription = "태그 수정",
+                                modifier = Modifier.size(24.dp)
+                            )
                         },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
@@ -718,6 +736,31 @@ fun EditFoodDialog(
                         }
                     }
                 }
+
+                TextField(
+                    value = editedQuantity,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull()
+                                ?.let { it > 0 } == true)) {
+                            editedQuantity = newValue
+                            if (newValue.isNotEmpty()) {
+                                newValue.toIntOrNull()?.let {
+                                    if (it > 0) editedQuantity = it.toString()
+                                }
+                            }
+                        }
+                    },
+                    placeholder = { Text(food.quantity.toString()) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.quantity_icon),
+                            contentDescription = "수량 수정",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
@@ -726,15 +769,16 @@ fun EditFoodDialog(
                     val editedFood = FoodEntity(
                         id = food.id,
                         barcodeNumber = food.barcodeNumber,
-                        foodName = editedName,
-                        expirationDate = editedExpiryDate,
+                        foodName = editedFoodName,
+                        expirationDate = editedExpirationDate,
                         tag = editedTag,
-                        quantity = editedQuantity
+                        quantity = editedQuantity.toInt()
                     )
                     onConfirm(editedFood)
                     onDismiss()
                 },
-                enabled = editedName.isNotBlank() && editedQuantity.toString().isNotBlank()
+                enabled = editedFoodName.isNotBlank() && editedQuantity.isNotBlank() && editedQuantity.toIntOrNull()
+                    ?.let { it > 0 } == true
             ) {
                 Text("확인")
             }

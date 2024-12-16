@@ -1,6 +1,8 @@
 package com.example.foodsafevision
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -16,17 +18,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateScanner(
@@ -36,8 +42,13 @@ fun DateScanner(
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val currentDate = remember { Calendar.getInstance() }
-    val datePickerState =
-        rememberDatePickerState(initialSelectedDateMillis = currentDate.timeInMillis)
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = LocalDate.now()
+            .atStartOfDay(ZoneId.of("Asia/Seoul"))
+            .toInstant()
+            .toEpochMilli()
+            .plus(TimeZone.getDefault().rawOffset)
+    )
 
     Box(
         modifier = Modifier
@@ -202,11 +213,11 @@ fun DateScanner(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { timestamp ->
-                            val date = SimpleDateFormat(
-                                "yyyy-MM-dd",
-                                Locale.getDefault()
-                            ).format(Date(timestamp))
-                            onDateSelected(date)
+                            val localDate = Instant.ofEpochMilli(timestamp)
+                                .atZone(ZoneId.of("Asia/Seoul"))
+                                .toLocalDate()
+                            val currentDate = localDate.toString()
+                            onDateSelected(currentDate)
                         }
                         showDialog = false
                     }

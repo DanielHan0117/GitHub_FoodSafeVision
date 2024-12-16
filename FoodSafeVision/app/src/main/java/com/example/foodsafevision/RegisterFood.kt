@@ -18,19 +18,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.sharp.ArrowBack
-import androidx.compose.material.icons.sharp.KeyboardArrowLeft
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.sp
 import com.example.foodsafevision.data.model.FoodEntity
 import com.example.foodsafevision.data.repository.TagRepository
 import com.example.foodsafevision.viewmodel.FoodViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.TimeZone
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,9 +44,9 @@ fun RegisterFood(
 ) {
     val tags by tagRepository.allTags.collectAsState(initial = emptyList())
 
-    val barcode by remember { mutableStateOf(initialBarcode ?: "") }
+    val barcodeNumber by remember { mutableStateOf(initialBarcode ?: "") }
     var newFoodName by remember { mutableStateOf(initialFoodName) }
-    var newExpiryDate by remember { mutableStateOf(initialExpirationDate) }
+    var newExpirationDate by remember { mutableStateOf(initialExpirationDate) }
     var newTag by remember { mutableStateOf("나의 냉장고") }
     var newQuantity by remember { mutableStateOf("1") }
 
@@ -57,9 +55,10 @@ fun RegisterFood(
 
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = LocalDate.now()
-            .atStartOfDay(ZoneId.systemDefault())
+            .atStartOfDay(ZoneId.of("Asia/Seoul"))
             .toInstant()
             .toEpochMilli()
+            .plus(TimeZone.getDefault().rawOffset)
     )
 
     if (showDatePicker) {
@@ -71,7 +70,7 @@ fun RegisterFood(
                         val localDate = Instant.ofEpochMilli(timestamp)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDate()
-                        newExpiryDate = localDate.toString()
+                        newExpirationDate = localDate.toString()
                     }
                     showDatePicker = false
                 }) {
@@ -113,7 +112,7 @@ fun RegisterFood(
         Spacer(modifier = Modifier.height(2.dp))
 
         TextField(
-            value = barcode,
+            value = barcodeNumber,
             onValueChange = { },
             enabled = false,
             readOnly = true,
@@ -122,7 +121,7 @@ fun RegisterFood(
                     painter = painterResource(id = R.drawable.barcode_icon),
                     contentDescription = "Barcode Icon",
                     modifier = Modifier.size(24.dp),
-                    tint = Color.Black
+                    tint = if (barcodeNumber.isBlank()) Color.Gray else Color.Black
                 )
             },
             modifier = Modifier.fillMaxWidth(0.95f)
@@ -148,7 +147,7 @@ fun RegisterFood(
         Spacer(modifier = Modifier.height(12.dp))
 
         TextField(
-            value = newExpiryDate,
+            value = newExpirationDate,
             onValueChange = { },
             enabled = false,
             readOnly = true,
@@ -175,6 +174,7 @@ fun RegisterFood(
                     showDatePicker = true
                 }
         )
+
         Spacer(modifier = Modifier.height(12.dp))
 
         ExposedDropdownMenuBox(
@@ -222,6 +222,11 @@ fun RegisterFood(
                 if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull()
                         ?.let { it > 0 } == true)) {
                     newQuantity = newValue
+                    if (newValue.isNotEmpty()) {
+                        newValue.toIntOrNull()?.let {
+                            if (it > 0) newQuantity = it.toString()
+                        }
+                    }
                 }
             },
             placeholder = { Text("수량") },
@@ -241,18 +246,19 @@ fun RegisterFood(
         Button(
             onClick = {
                 val newFood = FoodEntity(
-                    id = 0, // Room will auto-generate
-                    barcodeNumber = barcode,
+                    id = 0,
+                    barcodeNumber = barcodeNumber,
                     foodName = newFoodName,
-                    expirationDate = newExpiryDate,
+                    expirationDate = newExpirationDate,
                     tag = newTag,
-                    quantity = newQuantity.toIntOrNull() ?: 1
+                    quantity = newQuantity.toInt()
                 )
                 viewModel.addFood(newFood)
                 onSaveComplete()
             },
             modifier = Modifier.fillMaxWidth(0.95f),
-            enabled = newFoodName.isNotBlank() && newExpiryDate.isNotBlank()
+            enabled = newFoodName.isNotBlank() && newQuantity.isNotBlank() && newQuantity.toIntOrNull()
+                ?.let { it > 0 } == true
         ) {
             Text("저장")
         }

@@ -221,6 +221,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onSaveComplete = {
+                                scannedBarcode = null
+                                foodName = null
+                                expirationDate = null
+                                showDateDialog = false
                                 navController.navigate("foodListScreen") {
                                     popUpTo("foodListScreen") { inclusive = true }
                                 }

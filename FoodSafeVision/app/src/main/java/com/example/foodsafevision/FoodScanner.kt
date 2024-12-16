@@ -161,7 +161,6 @@ fun FoodScanner(
     val coroutineScope = rememberCoroutineScope()
 
     var focusFrameColor by remember { mutableStateOf(Color.White) }
-    val colorScheme = MaterialTheme.colorScheme
 
     fun showSuccessAndProceed(action: () -> Unit) {
         focusFrameColor = Color.Green
@@ -386,7 +385,11 @@ fun FoodScanner(
                                         .addOnSuccessListener { barcodes ->
                                             if (barcodes.isNotEmpty()) {
                                                 val scannedBarcode =
-                                                    barcodes[0].rawValue ?: "알 수 없음"
+                                                    barcodes[0].rawValue?.takeIf { it.isNotBlank() }
+                                                        ?: ""
+                                                barcodeValue = scannedBarcode
+                                                showBarcodeResult = true
+
                                                 showSuccessAndProceed {
                                                     coroutineScope.launch {
                                                         try {
@@ -396,31 +399,12 @@ fun FoodScanner(
                                                                 )
                                                             onBarcodeDetected(
                                                                 scannedBarcode,
-                                                                productName
+                                                                productName ?: ""
                                                             )
                                                         } catch (e: Exception) {
-                                                            onBarcodeDetected(scannedBarcode, null)
+                                                            Log.e("BarcodeScanner", "바코드 조회 실패", e)
+                                                            onBarcodeDetected(scannedBarcode, "")
                                                         }
-                                                    }
-                                                }
-
-                                                barcodeValue = scannedBarcode
-                                                showBarcodeResult = true
-
-                                                // 코루틴 스코프 내에서 데이터베이스 조회
-                                                coroutineScope.launch {
-                                                    try {
-                                                        val productName =
-                                                            barcodeRepository.getProductNameByBarcode(
-                                                                scannedBarcode
-                                                            )
-                                                        onBarcodeDetected(
-                                                            scannedBarcode,
-                                                            productName
-                                                        )
-                                                    } catch (e: Exception) {
-                                                        Log.e("BarcodeScanner", "바코드 조회 실패", e)
-                                                        onBarcodeDetected(scannedBarcode, null)
                                                     }
                                                 }
                                             }
