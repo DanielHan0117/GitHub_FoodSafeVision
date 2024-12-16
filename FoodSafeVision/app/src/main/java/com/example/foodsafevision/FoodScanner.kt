@@ -284,7 +284,7 @@ fun FoodScanner(
                 text = {
                     TextField(
                         value = inputText,
-                        placeholder = { Text("식품명") },
+                        placeholder = { Text("음식명") },
                         onValueChange = { inputText = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         modifier = Modifier
@@ -393,7 +393,6 @@ fun FoodScanner(
                                         }
                                 }
                             }
-
 
                             FoodMode.Auto_Recognition -> {
                                 if (shouldAnalyzeImage) {

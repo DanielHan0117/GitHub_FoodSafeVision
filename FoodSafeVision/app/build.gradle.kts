@@ -98,6 +98,4 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
 
     implementation("org.pytorch:pytorch_android:1.12.2")
-    //implementation("org.pytorch:pytorch_android_torchvision:1.12.2")
-
 }

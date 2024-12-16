@@ -29,6 +29,8 @@ import kotlinx.coroutines.launch
 import android.Manifest
 import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
+import android.view.WindowManager
+import androidx.compose.runtime.DisposableEffect
 import androidx.room.Room
 import com.example.foodsafevision.data.database.FoodDatabase
 import com.example.foodsafevision.data.model.FoodEntity
@@ -139,6 +141,16 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("foodScanner") {
+                        DisposableEffect(Unit) {
+                            window.setFlags(
+                                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                                WindowManager.LayoutParams.FLAG_FULLSCREEN
+                            )
+                            onDispose {
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                            }
+                        }
+
                         FoodScanner(
                             barcodeRepository = barcodeRepository,
                             onBarcodeDetected = { barcode, productName ->
@@ -180,6 +192,16 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     composable("dateScanner") {
+                        DisposableEffect(Unit) {
+                            window.setFlags(
+                                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                                WindowManager.LayoutParams.FLAG_FULLSCREEN
+                            )
+                            onDispose {
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                            }
+                        }
+
                         val viewModel: FoodViewModel = viewModel(
                             factory = FoodViewModelFactory(foodRepository)
                         )
