@@ -1,5 +1,6 @@
 package com.example.foodsafevision
 
+import android.content.Context
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -12,6 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,11 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodsafevision.data.model.FoodEntity
-import com.example.foodsafevision.data.model.TagEntity
 import com.example.foodsafevision.data.repository.FoodRepository
 import com.example.foodsafevision.data.repository.TagRepository
 import com.example.foodsafevision.util.NotificationHelper
@@ -88,11 +87,33 @@ fun FoodListScreen(
     val focusRequester = remember { FocusRequester() }
 
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var dDayPeriod by remember { mutableStateOf(7) }
-    var isNotificationEnabled by remember { mutableStateOf(true) }
-
     val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val notificationHelper = remember { NotificationHelper(context) }
+
+    var dDayPeriod by remember {
+        mutableStateOf(
+            sharedPreferences.getInt("d_day_period", 7)
+        )
+    }
+
+    var isNotificationEnabled by remember {
+        mutableStateOf(
+            sharedPreferences.getBoolean("notification_enabled", true)
+        )
+    }
+
+    var notificationHour by remember {
+        mutableStateOf(
+            sharedPreferences.getInt("notification_hour", 7)
+        )
+    }
+
+    var notificationMinute by remember {
+        mutableStateOf(
+            sharedPreferences.getInt("notification_minute", 0)
+        )
+    }
 
     Scaffold(
         containerColor = Color.White,
@@ -244,9 +265,47 @@ fun FoodListScreen(
         showDialog = showSettingsDialog,
         onDismiss = { showSettingsDialog = false },
         currentDDayPeriod = dDayPeriod,
-        onDDayPeriodChange = { dDayPeriod = it },
+        onDDayPeriodChange = { newDDay ->
+            dDayPeriod = newDDay
+            sharedPreferences.edit()
+                .putInt("d_day_period", newDDay)
+                .apply()
+            foodList.forEach { food ->
+                notificationHelper.scheduleNotification(
+                    food,
+                    newDDay,
+                    isNotificationEnabled,
+                    notificationHour,
+                    notificationMinute
+                )
+            }
+        },
         isNotificationEnabled = isNotificationEnabled,
-        onNotificationToggle = { isNotificationEnabled = it }
+        onNotificationToggle = { enabled ->
+            isNotificationEnabled = enabled
+            sharedPreferences.edit()
+                .putBoolean("notification_enabled", enabled)
+                .apply()
+        },
+        currentHour = notificationHour,
+        currentMinute = notificationMinute,
+        onTimeChange = { hour, minute ->
+            notificationHour = hour
+            notificationMinute = minute
+            sharedPreferences.edit()
+                .putInt("notification_hour", hour)
+                .putInt("notification_minute", minute)
+                .apply()
+            foodList.forEach { food ->
+                notificationHelper.scheduleNotification(
+                    food,
+                    dDayPeriod,
+                    isNotificationEnabled,
+                    hour,
+                    minute
+                )
+            }
+        }
     )
 }
 
@@ -502,6 +561,7 @@ fun EditFoodDialog(
     var editedQuantity by remember { mutableStateOf(food.quantity) }
     var editedTag by remember { mutableStateOf(food.tag) }
     var expanded by remember { mutableStateOf(false) }
+
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = LocalDate.parse(editedExpiryDate)
@@ -692,14 +752,54 @@ fun SettingsDialog(
     currentDDayPeriod: Int,
     onDDayPeriodChange: (Int) -> Unit,
     isNotificationEnabled: Boolean,
-    onNotificationToggle: (Boolean) -> Unit
+    onNotificationToggle: (Boolean) -> Unit,
+    currentHour: Int,
+    currentMinute: Int,
+    onTimeChange: (Int, Int) -> Unit
 ) {
+    var selectedHour by remember { mutableStateOf(currentHour) }
+    var selectedMinute by remember { mutableStateOf(currentMinute) }
+
+    val hourListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (Int.MAX_VALUE / 2) - ((Int.MAX_VALUE / 2) % 24) + currentHour
+    )
+    val minuteListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (Int.MAX_VALUE / 2) - ((Int.MAX_VALUE / 2) % 60) + currentMinute
+    )
+
+    LaunchedEffect(hourListState) {
+        hourListState.scrollToItem(hourListState.firstVisibleItemIndex, -23)
+    }
+
+    LaunchedEffect(minuteListState) {
+        minuteListState.scrollToItem(minuteListState.firstVisibleItemIndex, -23)
+    }
+
+    LaunchedEffect(hourListState.firstVisibleItemIndex) {
+        val centerIndex = hourListState.firstVisibleItemIndex + 1
+        val newHour = centerIndex % 24
+        if (selectedHour != newHour) {
+            selectedHour = newHour
+            onTimeChange(newHour, selectedMinute)
+        }
+    }
+
+    LaunchedEffect(minuteListState.firstVisibleItemIndex) {
+        val centerIndex = minuteListState.firstVisibleItemIndex + 1
+        val newMinute = centerIndex % 60
+        if (selectedMinute != newMinute) {
+            selectedMinute = newMinute
+            onTimeChange(selectedHour, newMinute)
+        }
+    }
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("설정", style = MaterialTheme.typography.headlineMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // D-Day 설정
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -718,6 +818,7 @@ fun SettingsDialog(
                         }
                     }
 
+                    // 알림 설정
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -729,10 +830,86 @@ fun SettingsDialog(
                             onCheckedChange = onNotificationToggle
                         )
                     }
+
+                    if (isNotificationEnabled) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("알림 시간", style = MaterialTheme.typography.titleMedium)
+
+                            Row(
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 시간 선택
+                                Box(
+                                    modifier = Modifier
+                                        .height(46.dp)
+                                        .width(50.dp)
+                                ) {
+                                    LazyColumn(
+                                        state = hourListState,
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        userScrollEnabled = true
+                                    ) {
+                                        items(Int.MAX_VALUE) { index ->
+                                            val hour = index % 24
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = String.format("%02d", hour),
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    color = if (hour == selectedHour) MaterialTheme.colorScheme.primary else Color.Black
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 분 선택
+                                Box(
+                                    modifier = Modifier
+                                        .height(46.dp)
+                                        .width(50.dp)
+                                ) {
+                                    LazyColumn(
+                                        state = minuteListState,
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        userScrollEnabled = true
+                                    ) {
+                                        items(Int.MAX_VALUE) { index ->
+                                            val minute = index % 60
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = String.format("%02d", minute),
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    color = if (minute == selectedMinute) MaterialTheme.colorScheme.primary else Color.Black
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = {
+                        onTimeChange(selectedHour, selectedMinute)
+                        onDismiss()
+                    }
+                ) {
                     Text("확인")
                 }
             }

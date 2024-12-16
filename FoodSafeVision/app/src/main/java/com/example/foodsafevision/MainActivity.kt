@@ -55,6 +55,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var tagRepository: TagRepository
     private lateinit var notificationHelper: NotificationHelper
 
+    private var dDayPeriod by mutableStateOf(7)
+    private var isNotificationEnabled by mutableStateOf(true)
+    private var notificationHour by mutableStateOf(7)
+    private var notificationMinute by mutableStateOf(0)
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,17 +101,18 @@ class MainActivity : ComponentActivity() {
                     val expirationDate = LocalDate.parse(food.expirationDate)
                     val daysUntilExpiry = ChronoUnit.DAYS.between(currentDate, expirationDate)
 
-                    if (daysUntilExpiry in 0..7) {
+                    if (daysUntilExpiry in 0..dDayPeriod) {
                         notificationHelper.scheduleNotification(
                             food,
-                            daysUntilExpiry.toInt(),
-                            true
+                            dDayPeriod,
+                            isNotificationEnabled,
+                            notificationHour,
+                            notificationMinute
                         )
                     }
                 }
             }
         }
-
 
         window.statusBarColor = androidx.compose.ui.graphics.Color.Black.toArgb()
         setContent {

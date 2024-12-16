@@ -41,12 +41,15 @@ class NotificationHelper(private val context: Context) {
 
     @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("ScheduleExactAlarm")
-    fun scheduleNotification(food: FoodEntity, dDayPeriod: Int, isEnabled: Boolean) {
+    fun scheduleNotification(food: FoodEntity, dDayPeriod: Int, isEnabled: Boolean, hour: Int, minute: Int) {
         if (!isEnabled) return
 
         val currentDate = LocalDate.now()
         val expirationDate = LocalDate.parse(food.expirationDate)
         val daysUntilExpiry = ChronoUnit.DAYS.between(currentDate, expirationDate)
+
+        // D-Day 기간 체크: daysUntilExpiry가 dDayPeriod 이하일 때만 알림 설정
+        if (daysUntilExpiry > dDayPeriod) return
 
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("foodName", food.foodName)
@@ -61,17 +64,22 @@ class NotificationHelper(private val context: Context) {
         )
 
         val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 7)
-            set(Calendar.MINUTE, 0)
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
+
+            // 현재 시간이 설정된 알림 시간을 지났다면 다음 날로 설정
             if (before(Calendar.getInstance())) {
                 add(Calendar.DAY_OF_MONTH, 1)
             }
         }
 
-        alarmManager.setAlarmClock(
-            AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
-            pendingIntent
-        )
+        // 유통기한이 지나지 않은 경우에만 알림 설정
+        if (daysUntilExpiry >= 0) {
+            alarmManager.setAlarmClock(
+                AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                pendingIntent
+            )
+        }
     }
 }
