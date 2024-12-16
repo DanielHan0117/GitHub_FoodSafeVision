@@ -95,7 +95,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    //implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    implementation("org.pytorch:pytorch_android:1.12.2")
+    //implementation("org.pytorch:pytorch_android:1.12.2")
+    implementation(libs.pytorch.android.v1131)
 }

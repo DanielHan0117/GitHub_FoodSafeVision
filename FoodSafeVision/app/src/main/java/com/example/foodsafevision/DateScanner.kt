@@ -36,8 +36,14 @@ fun DateScanner(
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val currentDate = remember { Calendar.getInstance() }
-    val datePickerState = rememberDatePickerState( initialSelectedDateMillis = currentDate.timeInMillis )
+    val datePickerState =
+        rememberDatePickerState(initialSelectedDateMillis = currentDate.timeInMillis)
 
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    )
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -61,45 +67,6 @@ fun DateScanner(
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
                 Text("직접 입력")
-            }
-        }
-
-        if (showDialog) {
-            DatePickerDialog(
-                onDismissRequest = { showDialog = false },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            datePickerState.selectedDateMillis?.let { timestamp ->
-                                val date = SimpleDateFormat(
-                                    "yyyy-MM-dd",
-                                    Locale.getDefault()
-                                ).format(Date(timestamp))
-                                onDateSelected(date)
-                            }
-                            showDialog = false
-                        }
-                    ) {
-                        Text("확인")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showDialog = false }
-                    ) {
-                        Text("취소")
-                    }
-                }
-            ) {
-                DatePicker(
-                    state = datePickerState,
-                    title = {
-                        Text(
-                            "\n      유통기한 날짜 선택",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                )
             }
         }
 
@@ -145,6 +112,70 @@ fun DateScanner(
                     }
                 }, ContextCompat.getMainExecutor(context))
             }
+
+            // 포커스 프레임 추가
+            Box(
+                modifier = Modifier
+                    .width(300.dp)
+                    .height(100.dp)
+                    .align(Alignment.Center)
+            ) {
+                // 왼쪽 상단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopStart)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopStart)
+                )
+
+                // 오른쪽 상단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopEnd)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopEnd)
+                )
+
+                // 왼쪽 하단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomStart)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomStart)
+                )
+
+                // 오른쪽 하단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomEnd)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomEnd)
+                )
+            }
         }
 
         // 카메라 셔터 버튼
@@ -160,6 +191,45 @@ fun DateScanner(
                     .size(60.dp)
                     .background(Color.White, CircleShape)
                     .clickable { /* 카메라 셔터 로직 */ }
+            )
+        }
+    }
+
+    if (showDialog) {
+        DatePickerDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { timestamp ->
+                            val date = SimpleDateFormat(
+                                "yyyy-MM-dd",
+                                Locale.getDefault()
+                            ).format(Date(timestamp))
+                            onDateSelected(date)
+                        }
+                        showDialog = false
+                    }
+                ) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDialog = false }
+                ) {
+                    Text("취소")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                title = {
+                    Text(
+                        "\n      유통기한 날짜 선택",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             )
         }
     }

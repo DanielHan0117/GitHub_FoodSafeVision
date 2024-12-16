@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import android.Manifest
 import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.runtime.DisposableEffect
 import androidx.room.Room
@@ -156,17 +157,17 @@ class MainActivity : ComponentActivity() {
                             onBarcodeDetected = { barcode, productName ->
                                 scannedBarcode = barcode.toString()
                                 foodName = productName.toString()
-                                showBarcodeDialog = true
+                                //showBarcodeDialog = true
                                 navController.navigate("dateScanner")
                             },
                             onObjectDetected = { detectedLabel ->
                                 foodName = detectedLabel
-                                showAutoDialog = true
+                                //showAutoDialog = true
                                 navController.navigate("dateScanner")
                             },
                             onTextInput = { inputText ->
                                 foodName = inputText
-                                showAutoDialog = true
+                                //showAutoDialog = true
                                 navController.navigate("dateScanner")
                             },
                             onClickedDismiss = {
@@ -193,12 +194,11 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("dateScanner") {
                         DisposableEffect(Unit) {
-                            window.setFlags(
-                                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                                WindowManager.LayoutParams.FLAG_FULLSCREEN
-                            )
+                            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
+                                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                             onDispose {
-                                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
                             }
                         }
 

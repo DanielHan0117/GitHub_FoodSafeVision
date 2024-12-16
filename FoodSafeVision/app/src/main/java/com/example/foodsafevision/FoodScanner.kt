@@ -420,6 +420,77 @@ fun FoodScanner(
                     }
                 }, ContextCompat.getMainExecutor(context))
             }
+
+            // 포커스 프레임 추가
+            Box(
+                modifier = when (currentMode) {
+                    FoodMode.Barcode -> Modifier
+                        .width(300.dp)
+                        .height(140.dp)
+                        .align(Alignment.Center)
+                    FoodMode.Auto_Recognition -> Modifier
+                        .width(300.dp)
+                        .height(300.dp)
+                        .align(Alignment.Center)
+                },
+                contentAlignment = Alignment.Center
+            ) {
+                // 왼쪽 상단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopStart)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopStart)
+                )
+
+                // 오른쪽 상단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopEnd)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.TopEnd)
+                )
+
+                // 왼쪽 하단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomStart)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomStart)
+                )
+
+                // 오른쪽 하단 모서리
+                Box(
+                    modifier = Modifier
+                        .size(30.dp, 3.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomEnd)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(3.dp, 30.dp)
+                        .background(Color.White)
+                        .align(Alignment.BottomEnd)
+                )
+            }
         }
 
         // 하단 버튼 영역

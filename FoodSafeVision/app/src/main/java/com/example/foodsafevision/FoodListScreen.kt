@@ -225,7 +225,7 @@ fun FoodListScreen(
                 inputTag = ""
             },
             title = {
-                Text("태그 추가", style = MaterialTheme.typography.titleMedium)
+                Text("태그 추가", style = MaterialTheme.typography.titleLarge)
             },
             text = {
                 TextField(
