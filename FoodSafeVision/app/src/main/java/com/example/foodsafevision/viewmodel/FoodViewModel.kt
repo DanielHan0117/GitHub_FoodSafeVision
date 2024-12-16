@@ -8,7 +8,9 @@ import com.example.foodsafevision.data.repository.FoodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class FoodViewModel(private val foodRepository: FoodRepository) : ViewModel() {
     private val _allFoods = MutableStateFlow<List<FoodEntity>>(emptyList())
@@ -58,6 +60,10 @@ class FoodViewModel(private val foodRepository: FoodRepository) : ViewModel() {
         viewModelScope.launch {
             foodRepository.updateFoodsTag(oldTag, newTag)
         }
+    }
+
+    val sortedFoods = allFoods.map { foods ->
+        foods.sortedBy { LocalDate.parse(it.expirationDate) }
     }
 }
 

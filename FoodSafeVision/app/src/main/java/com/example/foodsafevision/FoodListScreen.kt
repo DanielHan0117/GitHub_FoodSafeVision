@@ -115,6 +115,8 @@ fun FoodListScreen(
         )
     }
 
+    val sortedFoodList by foodViewModel.sortedFoods.collectAsState(initial = emptyList())
+
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -186,7 +188,7 @@ fun FoodListScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(foodList.filter { it.tag == selectedTag }) { food ->
+                items(sortedFoodList.filter { it.tag == selectedTag }) { food ->
                     FoodItem(
                         food = food,
                         onClick = {
@@ -565,6 +567,7 @@ fun EditFoodDialog(
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = LocalDate.parse(editedExpiryDate)
+            .plusDays(1)  // 하루를 더함
             .atStartOfDay(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
