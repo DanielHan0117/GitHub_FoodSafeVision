@@ -6,11 +6,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,21 +22,16 @@ import com.example.foodsafevision.data.repository.BarcodeRepository
 import com.example.foodsafevision.ui.theme.FoodSafeVisionTheme
 import kotlinx.coroutines.launch
 import android.Manifest
-import android.database.sqlite.SQLiteConstraintException
-import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.runtime.DisposableEffect
 import androidx.room.Room
 import com.example.foodsafevision.data.database.FoodDatabase
-import com.example.foodsafevision.data.model.FoodEntity
 import com.example.foodsafevision.data.repository.FoodRepository
-import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodsafevision.data.database.TagDatabase
 import com.example.foodsafevision.data.repository.TagRepository
 import com.example.foodsafevision.util.NotificationHelper
-import com.example.foodsafevision.viewmodel.FoodViewModel
 import com.example.foodsafevision.viewmodel.FoodViewModelFactory
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -121,8 +111,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             FoodSafeVisionTheme {
                 val navController = rememberNavController()
-                var showBarcodeDialog by remember { mutableStateOf(false) }
-                var showAutoDialog by remember { mutableStateOf(false) }
                 var scannedBarcode by remember { mutableStateOf<String?>(null) }
                 var foodName by remember { mutableStateOf<String?>(null) }
                 var expirationDate by remember { mutableStateOf<String?>(null) }
@@ -153,44 +141,35 @@ class MainActivity : ComponentActivity() {
                         }
 
                         FoodScanner(
+                            onNavigateBack = {
+                                navController.navigate("foodListScreen") {
+                                    popUpTo("foodListScreen") { inclusive = true }
+                                }
+                            },
                             barcodeRepository = barcodeRepository,
                             onBarcodeDetected = { barcode, productName ->
                                 scannedBarcode = barcode.toString()
                                 foodName = productName.toString()
-                                //showBarcodeDialog = true
                                 navController.navigate("dateScanner")
                             },
                             onObjectDetected = { detectedLabel ->
                                 foodName = detectedLabel
-                                //showAutoDialog = true
                                 navController.navigate("dateScanner")
                             },
                             onTextInput = { inputText ->
                                 foodName = inputText
-                                //showAutoDialog = true
                                 navController.navigate("dateScanner")
                             },
                             onClickedDismiss = {
+                                scannedBarcode = null
+                                foodName = null
+                                expirationDate = null
+                                showDateDialog = false
                                 navController.navigate("foodListScreen") {
                                     popUpTo("foodScanner") { inclusive = true }
                                 }
                             }
                         )
-
-                        if (showBarcodeDialog) {
-                            BarcodeResultDialog(
-                                barcodeNumber = scannedBarcode ?: "",
-                                productName = foodName,
-                                onDismiss = { showBarcodeDialog = false }
-                            )
-                        }
-
-                        if (showAutoDialog) {
-                            ObjectDetectionDialog(
-                                detectedLabel = foodName ?: "",
-                                onDismiss = { showAutoDialog = false }
-                            )
-                        }
                     }
                     composable("dateScanner") {
                         DisposableEffect(Unit) {
@@ -202,44 +181,51 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        val viewModel: FoodViewModel = viewModel(
-                            factory = FoodViewModelFactory(foodRepository)
-                        )
-
                         DateScanner(
-                            onDateDetected = {
-                                //navController.navigate("registerFood")
+                            onDateDetected = { detectedDate ->
+                                expirationDate = detectedDate
+                                showDateDialog = true
+                                navController.navigate("registerFood")
                             },
                             onDateSelected = { selectedDate ->
                                 expirationDate = selectedDate
                                 showDateDialog = true
-
-                                // Food 데이터베이스에 새 항목 추가
-                                viewModel.insertFood(
-                                    FoodEntity(
-                                        barcodeNumber = null.toString(),
-                                        foodName = foodName ?: "",
-                                        expirationDate = selectedDate,
-                                        tag = "나의 냉장고",
-                                        quantity = 1
-                                    )
-                                )
-
-                                //navController.navigate("registerFood")
+                                navController.navigate("registerFood")
                             },
                             onClickedDismiss = {
+                                scannedBarcode = null
+                                foodName = null
+                                expirationDate = null
+                                showDateDialog = false
                                 navController.navigate("foodListScreen") {
                                     popUpTo("foodScanner") { inclusive = true }
                                 }
                             }
                         )
+                    }
 
-                        if (showDateDialog) {
-                            DateDetectionDialog(
-                                detectedDate = expirationDate ?: "",
-                                onDismiss = { showDateDialog = false }
-                            )
-                        }
+                    composable("registerFood") {
+                        RegisterFood(
+                            viewModel = viewModel(factory = FoodViewModelFactory(foodRepository)),
+                            initialFoodName = foodName ?: "",
+                            initialExpirationDate = expirationDate ?: "",
+                            initialBarcode = scannedBarcode,
+                            tagRepository = tagRepository,
+                            onNavigateBack = {
+                                scannedBarcode = null
+                                foodName = null
+                                expirationDate = null
+                                showDateDialog = false
+                                navController.navigate("foodScanner") {
+                                    popUpTo("registerFood") { inclusive = true }
+                                }
+                            },
+                            onSaveComplete = {
+                                navController.navigate("foodListScreen") {
+                                    popUpTo("foodListScreen") { inclusive = true }
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -259,73 +245,4 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
-}
-
-@Composable
-fun BarcodeResultDialog(
-    barcodeNumber: String,
-    productName: String?,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("바코드 스캔 결과") },
-        text = {
-            Column {
-                Text("바코드 번호: $barcodeNumber")
-                if (productName != null) {
-                    Text("식품명: $productName")
-                } else {
-                    Text("데이터베이스에서 식품을 찾을 수 없습니다.")
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("확인")
-            }
-        }
-    )
-}
-
-@Composable
-fun ObjectDetectionDialog(
-    detectedLabel: String,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("객체 인식 결과") },
-        text = {
-            Column {
-                Text("인식된 객체: $detectedLabel")
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("확인")
-            }
-        }
-    )
-}
-
-@Composable
-fun DateDetectionDialog(
-    detectedDate: String,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("유통기한 인식 결과") },
-        text = {
-            Column {
-                Text("인식된 유통기한: $detectedDate")
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("확인")
-            }
-        }
-    )
 }

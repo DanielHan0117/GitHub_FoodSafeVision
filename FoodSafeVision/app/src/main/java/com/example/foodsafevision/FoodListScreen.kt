@@ -567,7 +567,6 @@ fun EditFoodDialog(
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = LocalDate.parse(editedExpiryDate)
-            .plusDays(1)  // 하루를 더함
             .atStartOfDay(ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()

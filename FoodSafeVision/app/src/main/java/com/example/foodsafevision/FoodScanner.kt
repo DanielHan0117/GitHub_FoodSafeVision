@@ -8,6 +8,7 @@ import android.graphics.Rect
 import android.graphics.YuvImage
 import android.media.Image
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -40,6 +41,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -137,21 +139,38 @@ private fun loadLabels(context: Context): Map<Int, String> {
     return foodLabels
 }
 
-
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun FoodScanner(
+    onNavigateBack: () -> Unit,
     barcodeRepository: BarcodeRepository,
     onBarcodeDetected: (Any?, Any?) -> Unit,
     onObjectDetected: (String) -> Unit = {},
     onTextInput: (String) -> Unit = {},
     onClickedDismiss: () -> Unit = {}
 ) {
+    BackHandler {
+        onNavigateBack()
+    }
+
     var foodName by remember { mutableStateOf("") }
     var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
     var showDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+
+    var focusFrameColor by remember { mutableStateOf(Color.White) }
+    val colorScheme = MaterialTheme.colorScheme
+
+    fun showSuccessAndProceed(action: () -> Unit) {
+        focusFrameColor = Color.Green
+        coroutineScope.launch {
+            delay(1000)
+            focusFrameColor = Color.White
+            action()
+        }
+    }
 
     // 바코드 스캐너 초기화
     val options = remember {
@@ -164,7 +183,6 @@ fun FoodScanner(
     val scanner = remember { BarcodeScanning.getClient(options) }
     var showBarcodeResult by remember { mutableStateOf(false) }
     var barcodeValue by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
 
     var shouldAnalyzeImage by remember { mutableStateOf(false) }
 
@@ -229,8 +247,10 @@ fun FoodScanner(
                 }
 
                 // 레이블 이름으로 결과 전달
-                val detectedLabel = labels[maxScoreIdx] ?: "알 수 없음"
-                onObjectDetected(detectedLabel)
+                val detectedLabel = labels[maxScoreIdx] ?: ""
+                showSuccessAndProceed {
+                    onObjectDetected(detectedLabel)
+                }
 
             } catch (e: Exception) {
                 Log.e("FoodScanner", "이미지 분석 실패", e)
@@ -367,6 +387,23 @@ fun FoodScanner(
                                             if (barcodes.isNotEmpty()) {
                                                 val scannedBarcode =
                                                     barcodes[0].rawValue ?: "알 수 없음"
+                                                showSuccessAndProceed {
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            val productName =
+                                                                barcodeRepository.getProductNameByBarcode(
+                                                                    scannedBarcode
+                                                                )
+                                                            onBarcodeDetected(
+                                                                scannedBarcode,
+                                                                productName
+                                                            )
+                                                        } catch (e: Exception) {
+                                                            onBarcodeDetected(scannedBarcode, null)
+                                                        }
+                                                    }
+                                                }
+
                                                 barcodeValue = scannedBarcode
                                                 showBarcodeResult = true
 
@@ -428,6 +465,7 @@ fun FoodScanner(
                         .width(300.dp)
                         .height(140.dp)
                         .align(Alignment.Center)
+
                     FoodMode.Auto_Recognition -> Modifier
                         .width(300.dp)
                         .height(300.dp)
@@ -439,13 +477,13 @@ fun FoodScanner(
                 Box(
                     modifier = Modifier
                         .size(30.dp, 3.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.TopStart)
                 )
                 Box(
                     modifier = Modifier
                         .size(3.dp, 30.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.TopStart)
                 )
 
@@ -453,13 +491,13 @@ fun FoodScanner(
                 Box(
                     modifier = Modifier
                         .size(30.dp, 3.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.TopEnd)
                 )
                 Box(
                     modifier = Modifier
                         .size(3.dp, 30.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.TopEnd)
                 )
 
@@ -467,13 +505,13 @@ fun FoodScanner(
                 Box(
                     modifier = Modifier
                         .size(30.dp, 3.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.BottomStart)
                 )
                 Box(
                     modifier = Modifier
                         .size(3.dp, 30.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.BottomStart)
                 )
 
@@ -481,13 +519,13 @@ fun FoodScanner(
                 Box(
                     modifier = Modifier
                         .size(30.dp, 3.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.BottomEnd)
                 )
                 Box(
                     modifier = Modifier
                         .size(3.dp, 30.dp)
-                        .background(Color.White)
+                        .background(focusFrameColor)
                         .align(Alignment.BottomEnd)
                 )
             }

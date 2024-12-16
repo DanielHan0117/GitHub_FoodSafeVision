@@ -1,5 +1,7 @@
 package com.example.foodsafevision.viewmodel
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -15,6 +17,12 @@ import java.time.LocalDate
 class FoodViewModel(private val foodRepository: FoodRepository) : ViewModel() {
     private val _allFoods = MutableStateFlow<List<FoodEntity>>(emptyList())
     val allFoods: StateFlow<List<FoodEntity>> = _allFoods.asStateFlow()
+
+    fun addFood(food: FoodEntity) {
+        viewModelScope.launch {
+            foodRepository.insertFood(food)
+        }
+    }
 
     fun refreshFoods() {
         viewModelScope.launch {
@@ -62,6 +70,7 @@ class FoodViewModel(private val foodRepository: FoodRepository) : ViewModel() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     val sortedFoods = allFoods.map { foods ->
         foods.sortedBy { LocalDate.parse(it.expirationDate) }
     }
