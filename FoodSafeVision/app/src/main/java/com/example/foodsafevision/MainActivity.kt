@@ -24,7 +24,18 @@ import kotlinx.coroutines.launch
 import android.Manifest
 import android.view.View
 import android.view.WindowManager
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.room.Room
 import com.example.foodsafevision.data.database.FoodDatabase
 import com.example.foodsafevision.data.repository.FoodRepository
@@ -60,8 +71,8 @@ class MainActivity : ComponentActivity() {
         checkAndRequestPermissions()
 
         // 데이터베이스 초기화 및 JSON 데이터 로드
-        val database = BarcodeDatabase.getDatabase(this)
-        barcodeRepository = BarcodeRepository(database.barcodeDao())
+        val barcodeDatabase = BarcodeDatabase.getDatabase(this)
+        barcodeRepository = BarcodeRepository(barcodeDatabase.barcodeDao())
 
         // JSON 데이터 로드 및 확인
         lifecycleScope.launch {
@@ -114,7 +125,6 @@ class MainActivity : ComponentActivity() {
                 var scannedBarcode by remember { mutableStateOf<String?>(null) }
                 var foodName by remember { mutableStateOf<String?>(null) }
                 var expirationDate by remember { mutableStateOf<String?>(null) }
-                var showDateDialog by remember { mutableStateOf(false) }
 
                 NavHost(
                     navController = navController,
@@ -152,19 +162,18 @@ class MainActivity : ComponentActivity() {
                                 foodName = productName.toString()
                                 navController.navigate("dateScanner")
                             },
-                            onObjectDetected = { detectedLabel ->
+                            onFoodNameDetected = { detectedLabel ->
                                 foodName = detectedLabel
                                 navController.navigate("dateScanner")
                             },
-                            onTextInput = { inputText ->
-                                foodName = inputText
+                            onFoodNameInput = { inputFoodName ->
+                                foodName = inputFoodName
                                 navController.navigate("dateScanner")
                             },
                             onClickedDismiss = {
                                 scannedBarcode = null
                                 foodName = null
                                 expirationDate = null
-                                showDateDialog = false
                                 navController.navigate("foodListScreen") {
                                     popUpTo("foodListScreen") { inclusive = true }
                                 }
@@ -184,19 +193,16 @@ class MainActivity : ComponentActivity() {
                         DateScanner(
                             onDateDetected = { detectedDate ->
                                 expirationDate = detectedDate
-                                showDateDialog = true
                                 navController.navigate("registerFood")
                             },
                             onDateSelected = { selectedDate ->
                                 expirationDate = selectedDate
-                                showDateDialog = true
                                 navController.navigate("registerFood")
                             },
                             onClickedDismiss = {
                                 scannedBarcode = null
                                 foodName = null
                                 expirationDate = null
-                                showDateDialog = false
                                 navController.navigate("foodListScreen") {
                                     popUpTo("foodListScreen") { inclusive = true }
                                 }
@@ -215,7 +221,6 @@ class MainActivity : ComponentActivity() {
                                 scannedBarcode = null
                                 foodName = null
                                 expirationDate = null
-                                showDateDialog = false
                                 navController.navigate("foodScanner") {
                                     popUpTo("foodScanner") { inclusive = true }
                                 }
@@ -224,7 +229,6 @@ class MainActivity : ComponentActivity() {
                                 scannedBarcode = null
                                 foodName = null
                                 expirationDate = null
-                                showDateDialog = false
                                 navController.navigate("foodListScreen") {
                                     popUpTo("foodListScreen") { inclusive = true }
                                 }
@@ -247,6 +251,39 @@ class MainActivity : ComponentActivity() {
                 permissionsToRequest.toTypedArray(),
                 PERMISSION_REQUEST_CODE
             )
+        }
+    }
+}
+
+@Composable
+fun FocusFrame(frameColor: Color = Color.White) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val lineThickness = 3.dp
+        val lineLength = 30.dp
+        Box(
+            modifier = Modifier
+                .width(300.dp)
+                .height(100.dp)
+        ) {
+            listOf(
+                Alignment.TopStart,
+                Alignment.TopEnd,
+                Alignment.BottomStart,
+                Alignment.BottomEnd
+            ).forEach { alignment ->
+                Box(
+                    modifier = Modifier
+                        .size(lineLength, lineThickness)
+                        .background(frameColor)
+                        .align(alignment)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(lineThickness, lineLength)
+                        .background(frameColor)
+                        .align(alignment)
+                )
+            }
         }
     }
 }

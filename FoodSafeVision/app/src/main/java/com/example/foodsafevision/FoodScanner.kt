@@ -145,8 +145,8 @@ fun FoodScanner(
     onNavigateBack: () -> Unit,
     barcodeRepository: BarcodeRepository,
     onBarcodeDetected: (Any?, Any?) -> Unit,
-    onObjectDetected: (String) -> Unit = {},
-    onTextInput: (String) -> Unit = {},
+    onFoodNameDetected: (String) -> Unit = {},
+    onFoodNameInput: (String) -> Unit = {},
     onClickedDismiss: () -> Unit = {}
 ) {
     BackHandler {
@@ -155,8 +155,8 @@ fun FoodScanner(
 
     var foodName by remember { mutableStateOf("") }
     var currentMode by remember { mutableStateOf(FoodMode.Barcode) }
-    var showDialog by remember { mutableStateOf(false) }
-    var inputText by remember { mutableStateOf("") }
+    var showFoodNameInput by remember { mutableStateOf(false) }
+    var inputFoodName by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -183,7 +183,7 @@ fun FoodScanner(
     var showBarcodeResult by remember { mutableStateOf(false) }
     var barcodeValue by remember { mutableStateOf("") }
 
-    var shouldAnalyzeImage by remember { mutableStateOf(false) }
+    var shouldAnalyze by remember { mutableStateOf(false) }
 
     // PyTorch 모듈 초기화
     val context = LocalContext.current
@@ -248,7 +248,7 @@ fun FoodScanner(
                 // 레이블 이름으로 결과 전달
                 val detectedLabel = labels[maxScoreIdx] ?: ""
                 showSuccessAndProceed {
-                    onObjectDetected(detectedLabel)
+                    onFoodNameDetected(detectedLabel)
                 }
 
             } catch (e: Exception) {
@@ -281,18 +281,18 @@ fun FoodScanner(
                 Text("취소")
             }
             TextButton(
-                onClick = { showDialog = true },
+                onClick = { showFoodNameInput = true },
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
                 Text("직접 입력")
             }
         }
 
-        if (showDialog) {
+        if (showFoodNameInput) {
             AlertDialog(
                 onDismissRequest = {
-                    showDialog = false
-                    inputText = ""
+                    showFoodNameInput = false
+                    inputFoodName = ""
                 },
                 containerColor = Color.White,
                 title = {
@@ -303,7 +303,7 @@ fun FoodScanner(
                 },
                 text = {
                     TextField(
-                        value = inputText,
+                        value = inputFoodName,
                         placeholder = { Text("음식명") },
                         colors = TextFieldDefaults.colors(
                             unfocusedContainerColor = Color(0xFFF5F5F5),
@@ -312,7 +312,7 @@ fun FoodScanner(
                             focusedIndicatorColor = Color.Gray,
                             cursorColor = Color.Black
                         ),
-                        onValueChange = { inputText = it },
+                        onValueChange = { inputFoodName = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -326,13 +326,13 @@ fun FoodScanner(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            if (inputText.isNotBlank()) {
-                                foodName = inputText
-                                showDialog = false
-                                onTextInput(inputText)
+                            if (inputFoodName.isNotBlank()) {
+                                foodName = inputFoodName
+                                showFoodNameInput = false
+                                onFoodNameInput(inputFoodName)
                             }
                         },
-                        enabled = inputText.isNotBlank(),
+                        enabled = inputFoodName.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
                             contentColor = Color.Black,
@@ -346,8 +346,8 @@ fun FoodScanner(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            showDialog = false
-                            inputText = "" // 입력 초기화
+                            showFoodNameInput = false
+                            inputFoodName = "" // 입력 초기화
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
@@ -438,9 +438,9 @@ fun FoodScanner(
                             }
 
                             FoodMode.Auto_Recognition -> {
-                                if (shouldAnalyzeImage) {
+                                if (shouldAnalyze) {
                                     analyzeImage(imageProxy)
-                                    shouldAnalyzeImage = false
+                                    shouldAnalyze = false
                                 } else {
                                     imageProxy.close()
                                 }
@@ -579,7 +579,7 @@ fun FoodScanner(
                         .size(60.dp)
                         .background(Color.White, CircleShape)
                         .clickable {
-                            shouldAnalyzeImage = true  // 셔터 버튼을 눌렀을 때 분석 플래그 설정
+                            shouldAnalyze = true  // 셔터 버튼을 눌렀을 때 분석 플래그 설정
                         }
                 )
             }

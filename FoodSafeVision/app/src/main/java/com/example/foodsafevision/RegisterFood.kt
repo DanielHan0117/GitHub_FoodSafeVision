@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import com.example.foodsafevision.viewmodel.FoodViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.TimeZone
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -56,11 +58,32 @@ fun RegisterFood(
     var showDatePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = LocalDate.now()
-            .atStartOfDay(ZoneId.of("Asia/Seoul"))
-            .toInstant()
-            .toEpochMilli()
-            .plus(TimeZone.getDefault().rawOffset)
+        initialSelectedDateMillis = try {
+            if (!initialExpirationDate.isNullOrEmpty()) {
+                Log.d("DatePicker", "날짜 파싱 시도: $initialExpirationDate")
+                LocalDate.parse(
+                    initialExpirationDate,
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                ).atStartOfDay(ZoneId.of("Asia/Seoul"))
+                    .toInstant()
+                    .toEpochMilli()
+                    .plus(TimeZone.getDefault().rawOffset)
+            } else {
+                Log.d("DatePicker", "기본 날짜 사용")
+                LocalDate.now()
+                    .atStartOfDay(ZoneId.of("Asia/Seoul"))
+                    .toInstant()
+                    .toEpochMilli()
+                    .plus(TimeZone.getDefault().rawOffset)
+            }
+        } catch (e: Exception) {
+            Log.e("DatePicker", "날짜 파싱 실패: ${e.message}")
+            LocalDate.now()
+                .atStartOfDay(ZoneId.of("Asia/Seoul"))
+                .toInstant()
+                .toEpochMilli()
+                .plus(TimeZone.getDefault().rawOffset)
+        }
     )
 
     val focusManager = LocalFocusManager.current
