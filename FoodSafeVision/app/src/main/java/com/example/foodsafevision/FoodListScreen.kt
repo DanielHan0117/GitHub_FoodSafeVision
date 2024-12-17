@@ -136,13 +136,13 @@ fun FoodListScreen(
                             }
                             Text(
                                 text = getCurrentDate(),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             IconButton(onClick = onAddFood) {
                                 Icon(
                                     Icons.Default.Add,
-                                    contentDescription = "음식 추가",
+                                    contentDescription = "식품 추가",
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -439,7 +439,7 @@ fun TagSection(
                                     is TagViewModel.DeleteTagResult.HasFoods -> {
                                         Toast.makeText(
                                             context,
-                                            "이 태그에 등록된 음식이 있어 삭제할 수 없습니다",
+                                            "이 태그에 등록된 식품이 있어 삭제할 수 없습니다",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }
@@ -714,11 +714,11 @@ fun EditFoodDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("음식 수정", style = MaterialTheme.typography.titleLarge)
+                Text("식품 수정", style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "음식 삭제"
+                        contentDescription = "식품 삭제"
                     )
                 }
             }
@@ -762,7 +762,7 @@ fun EditFoodDialog(
                     leadingIcon = {
                         Icon(
                             painter = painterResource(id = R.drawable.food_icon),
-                            contentDescription = "음식명 수정",
+                            contentDescription = "식품명 수정",
                             modifier = Modifier.size(24.dp)
                         )
                     },
@@ -806,7 +806,7 @@ fun EditFoodDialog(
 
                 ExposedDropdownMenuBox(
                     expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
+                    onExpandedChange = { expanded = !expanded }
                 ) {
                     TextField(
                         value = editedTag,
@@ -829,10 +829,12 @@ fun EditFoodDialog(
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
+                            .background(Color.White)
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
+                        containerColor = Color.White
                     ) {
                         tags.forEach { tag ->
                             DropdownMenuItem(
@@ -1068,7 +1070,7 @@ fun SettingsDialog(
                                                 Text(
                                                     text = String.format("%02d", hour),
                                                     style = MaterialTheme.typography.titleLarge,
-                                                    color = if (hour == selectedHour) Color.Black else Color.Gray
+                                                    color = if (hour == selectedHour) Color.Black else Color.LightGray
                                                 )
                                             }
                                         }
@@ -1096,7 +1098,7 @@ fun SettingsDialog(
                                                 Text(
                                                     text = String.format("%02d", minute),
                                                     style = MaterialTheme.typography.titleLarge,
-                                                    color = if (minute == selectedMinute) Color.Black else Color.Gray
+                                                    color = if (minute == selectedMinute) Color.Black else Color.LightGray
                                                 )
                                             }
                                         }

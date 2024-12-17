@@ -104,7 +104,7 @@ fun RegisterFood(
                     },
                     title = {
                         Text(
-                            "음식 등록",
+                            "식품 등록",
                             style = MaterialTheme.typography.titleLarge
                         )
                     },
@@ -162,7 +162,7 @@ fun RegisterFood(
             TextField(
                 value = newFoodName,
                 onValueChange = { newFoodName = it },
-                placeholder = { Text("음식명") },
+                placeholder = { Text("식품명") },
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = Color(0xFFF5F5F5),
                     unfocusedIndicatorColor = Color.Gray,
@@ -218,7 +218,8 @@ fun RegisterFood(
 
             ExposedDropdownMenuBox(
                 expanded = isExpanded,
-                onExpandedChange = { isExpanded = !isExpanded }
+                onExpandedChange = { isExpanded = !isExpanded },
+                modifier = Modifier.background(Color.White)
             ) {
                 TextField(
                     value = newTag,
@@ -245,7 +246,8 @@ fun RegisterFood(
 
                 ExposedDropdownMenu(
                     expanded = isExpanded,
-                    onDismissRequest = { isExpanded = false }
+                    onDismissRequest = { isExpanded = false },
+                    containerColor = Color.White
                 ) {
                     tags.forEach { tag ->
                         DropdownMenuItem(
@@ -257,6 +259,7 @@ fun RegisterFood(
                         )
                     }
                 }
+
             }
 
             Spacer(modifier = Modifier.height(12.dp))

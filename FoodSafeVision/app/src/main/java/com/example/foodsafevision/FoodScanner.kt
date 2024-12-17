@@ -304,7 +304,7 @@ fun FoodScanner(
                 text = {
                     TextField(
                         value = inputFoodName,
-                        placeholder = { Text("음식명") },
+                        placeholder = { Text("식품명") },
                         colors = TextFieldDefaults.colors(
                             unfocusedContainerColor = Color(0xFFF5F5F5),
                             unfocusedIndicatorColor = Color.Gray,

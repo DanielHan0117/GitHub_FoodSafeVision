@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
             val allBarcodes = barcodeRepository.getAllBarcodes()
         }
 
-        // 음식 데이터베이스 초기화 및 JSON 데이터 로드
+        // 식품 데이터베이스 초기화 및 JSON 데이터 로드
         val foodDatabase = Room.databaseBuilder(
             this,
             FoodDatabase::class.java,
