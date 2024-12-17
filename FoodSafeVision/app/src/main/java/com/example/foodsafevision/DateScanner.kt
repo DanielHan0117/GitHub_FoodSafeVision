@@ -77,7 +77,7 @@ fun DateScanner(
                 onClick = { showDialog = true },
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
-                Text("직접 입력")
+                Text("직접 선택")
             }
         }
 
@@ -220,18 +220,33 @@ fun DateScanner(
                             onDateSelected(currentDate)
                         }
                         showDialog = false
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
                 ) {
                     Text("확인")
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDialog = false }
+                    onClick = { showDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
                 ) {
                     Text("취소")
                 }
-            }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color.White
+            )
         ) {
             DatePicker(
                 state = datePickerState,
@@ -240,7 +255,23 @@ fun DateScanner(
                         "\n      유통기한 날짜 선택",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
-                }
+                },
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    headlineContentColor = Color.Black,
+                    weekdayContentColor = Color.Black,
+                    subheadContentColor = Color.Black,
+                    yearContentColor = Color.Black,
+                    currentYearContentColor = Color.Black,
+                    selectedYearContainerColor = Color.Black,
+                    selectedYearContentColor = Color.White,
+                    dayContentColor = Color.Black,
+                    selectedDayContainerColor = Color.Black,
+                    selectedDayContentColor = Color.White,
+                    todayContentColor = Color.Black,
+                    todayDateBorderColor = Color.Black
+                )
             )
         }
     }

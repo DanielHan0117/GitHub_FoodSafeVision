@@ -165,7 +165,7 @@ fun FoodScanner(
     fun showSuccessAndProceed(action: () -> Unit) {
         focusFrameColor = Color.Green
         coroutineScope.launch {
-            delay(1000)
+            delay(500)
             focusFrameColor = Color.White
             action()
         }
@@ -294,6 +294,7 @@ fun FoodScanner(
                     showDialog = false
                     inputText = ""
                 },
+                containerColor = Color.White,
                 title = {
                     Text(
                         "  직접 입력",
@@ -304,6 +305,13 @@ fun FoodScanner(
                     TextField(
                         value = inputText,
                         placeholder = { Text("음식명") },
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = Color(0xFFF5F5F5),
+                            unfocusedIndicatorColor = Color.Gray,
+                            focusedContainerColor = Color(0xFFF5F5F5),
+                            focusedIndicatorColor = Color.Gray,
+                            cursorColor = Color.Black
+                        ),
                         onValueChange = { inputText = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         modifier = Modifier
@@ -324,16 +332,30 @@ fun FoodScanner(
                                 onTextInput(inputText)
                             }
                         },
-                        enabled = inputText.isNotBlank()
+                        enabled = inputText.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            disabledContainerColor = Color.White,
+                            disabledContentColor = Color.DarkGray
+                        )
                     ) {
                         Text("확인")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = {
-                        showDialog = false
-                        inputText = "" // 입력 초기화
-                    }) {
+                    TextButton(
+                        onClick = {
+                            showDialog = false
+                            inputText = "" // 입력 초기화
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            disabledContainerColor = Color.White,
+                            disabledContentColor = Color.DarkGray
+                        )
+                    ) {
                         Text("취소")
                     }
                 }

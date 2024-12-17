@@ -231,6 +231,7 @@ fun FoodListScreen(
                 showAddTagDialog = false
                 inputTag = ""
             },
+            containerColor = Color.White,
             title = {
                 Text("태그 추가", style = MaterialTheme.typography.titleLarge)
             },
@@ -239,6 +240,13 @@ fun FoodListScreen(
                     value = inputTag,
                     onValueChange = { inputTag = it },
                     placeholder = { Text("태그명") },
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        focusedIndicatorColor = Color.Gray,
+                        cursorColor = Color.Black
+                    ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -254,20 +262,38 @@ fun FoodListScreen(
                             inputTag = ""
                         }
                     },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    ),
                     enabled = inputTag.isNotBlank()
                 ) {
                     Text("확인")
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showAddTagDialog = false
-                    inputTag = ""
-                }) {
+                TextButton(
+                    onClick = {
+                        showAddTagDialog = false
+                        inputTag = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
+                ) {
                     Text("취소")
                 }
             }
         )
+
+        LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+        }
     }
 
     SettingsDialog(
@@ -334,6 +360,7 @@ fun TagSection(
     var editedTagName by remember { mutableStateOf("") }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
 
     Row(
         modifier = Modifier
@@ -379,6 +406,7 @@ fun TagSection(
     if (showEditTagDialog) {
         AlertDialog(
             onDismissRequest = { showEditTagDialog = false },
+            containerColor = Color.White,
             title = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -432,6 +460,13 @@ fun TagSection(
                     value = editedTagName,
                     onValueChange = { editedTagName = it },
                     placeholder = { Text(editingTag) },
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        focusedIndicatorColor = Color.Gray,
+                        cursorColor = Color.Black
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             },
@@ -449,13 +484,29 @@ fun TagSection(
                             showEditTagDialog = false
                         }
                     },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    ),
                     enabled = editedTagName.isNotBlank()
                 ) {
                     Text("확인")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEditTagDialog = false }) {
+                TextButton(
+                    onClick = {
+                        showEditTagDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
+                ) {
                     Text("취소")
                 }
             }
@@ -596,16 +647,35 @@ fun EditFoodDialog(
                             editedExpirationDate = localDate.toString()
                         }
                         showDatePicker = false
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
                 ) {
                     Text("확인")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(
+                    onClick = {
+                        showDatePicker = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
+                ) {
                     Text("취소")
                 }
-            }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color.White
+            )
         ) {
             DatePicker(
                 state = datePickerState,
@@ -614,13 +684,30 @@ fun EditFoodDialog(
                         "\n      유통기한 날짜 선택",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
-                }
+                },
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    headlineContentColor = Color.Black,
+                    weekdayContentColor = Color.Black,
+                    subheadContentColor = Color.Black,
+                    yearContentColor = Color.Black,
+                    currentYearContentColor = Color.Black,
+                    selectedYearContainerColor = Color.Black,
+                    selectedYearContentColor = Color.White,
+                    dayContentColor = Color.Black,
+                    selectedDayContainerColor = Color.Black,
+                    selectedDayContentColor = Color.White,
+                    todayContentColor = Color.Black,
+                    todayDateBorderColor = Color.Black
+                )
             )
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -643,6 +730,13 @@ fun EditFoodDialog(
                     onValueChange = { },
                     enabled = false,
                     readOnly = true,
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedIndicatorColor = Color.Gray,
+                        disabledContainerColor = Color(0xFFF5F5F5)
+                    ),
                     leadingIcon = {
                         Icon(
                             painter = painterResource(id = R.drawable.barcode_icon),
@@ -651,13 +745,20 @@ fun EditFoodDialog(
                             tint = if (food.barcodeNumber.isBlank()) Color.Gray else Color.Black
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(0.95f)
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 TextField(
                     value = editedFoodName,
                     onValueChange = { editedFoodName = it },
                     placeholder = { Text(food.foodName) },
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        focusedIndicatorColor = Color.Gray,
+                        cursorColor = Color.Black
+                    ),
                     leadingIcon = {
                         Icon(
                             painter = painterResource(id = R.drawable.food_icon),
@@ -676,6 +777,14 @@ fun EditFoodDialog(
                         onValueChange = { },
                         enabled = false,
                         readOnly = true,
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = Color(0xFFF5F5F5),
+                            unfocusedIndicatorColor = Color.Gray,
+                            focusedContainerColor = Color(0xFFF5F5F5),
+                            focusedIndicatorColor = Color.Gray,
+                            disabledContainerColor = Color(0xFFF5F5F5),
+                            disabledTextColor = Color.Black
+                        ),
                         leadingIcon = {
                             Icon(
                                 Icons.Default.DateRange,
@@ -684,12 +793,6 @@ fun EditFoodDialog(
                                 tint = Color.Black
                             )
                         },
-                        colors = TextFieldDefaults.colors(
-                            disabledTextColor = Color.Black,
-                            disabledLeadingIconColor = Color.Black,
-                            disabledIndicatorColor = Color.Gray,
-                            disabledContainerColor = Color.Unspecified
-                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(
@@ -709,6 +812,12 @@ fun EditFoodDialog(
                         value = editedTag,
                         onValueChange = { },
                         readOnly = true,
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = Color(0xFFF5F5F5),
+                            unfocusedIndicatorColor = Color.Gray,
+                            focusedContainerColor = Color(0xFFF5F5F5),
+                            focusedIndicatorColor = Color.Gray,
+                        ),
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(id = R.drawable.tag_icon),
@@ -751,6 +860,13 @@ fun EditFoodDialog(
                         }
                     },
                     placeholder = { Text(food.quantity.toString()) },
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedIndicatorColor = Color.Gray,
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        focusedIndicatorColor = Color.Gray,
+                        cursorColor = Color.Black
+                    ),
                     leadingIcon = {
                         Icon(
                             painter = painterResource(id = R.drawable.quantity_icon),
@@ -778,13 +894,27 @@ fun EditFoodDialog(
                     onDismiss()
                 },
                 enabled = editedFoodName.isNotBlank() && editedQuantity.isNotBlank() && editedQuantity.toIntOrNull()
-                    ?.let { it > 0 } == true
+                    ?.let { it > 0 } == true,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                    disabledContainerColor = Color.White,
+                    disabledContentColor = Color.DarkGray
+                )
             ) {
                 Text("확인")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                    disabledContainerColor = Color.White,
+                    disabledContentColor = Color.DarkGray
+                )
+            ) {
                 Text("취소")
             }
         }
@@ -821,6 +951,15 @@ fun SettingsDialog(
         minuteListState.scrollToItem(minuteListState.firstVisibleItemIndex, -23)
     }
 
+    LaunchedEffect(Unit) {
+        hourListState.scrollToItem(
+            (Int.MAX_VALUE / 2) - ((Int.MAX_VALUE / 2) % 24) + currentHour
+        )
+        minuteListState.scrollToItem(
+            (Int.MAX_VALUE / 2) - ((Int.MAX_VALUE / 2) % 60) + currentMinute
+        )
+    }
+
     LaunchedEffect(hourListState.firstVisibleItemIndex) {
         val centerIndex = hourListState.firstVisibleItemIndex + 1
         val newHour = centerIndex % 24
@@ -842,6 +981,7 @@ fun SettingsDialog(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,
+            containerColor = Color.White,
             title = { Text("설정", style = MaterialTheme.typography.headlineMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -851,7 +991,10 @@ fun SettingsDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("D-Day", style = MaterialTheme.typography.titleMedium)
+                        Text("D-Day",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.Black
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -870,10 +1013,22 @@ fun SettingsDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("알림 설정", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "알림 설정",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.Black
+                        )
                         Switch(
                             checked = isNotificationEnabled,
-                            onCheckedChange = onNotificationToggle
+                            onCheckedChange = onNotificationToggle,
+                            colors = SwitchDefaults.colors(
+                                uncheckedBorderColor = Color.Gray,
+                                uncheckedTrackColor = Color.White,
+                                uncheckedThumbColor = Color.DarkGray,
+                                checkedBorderColor = Color.Gray,
+                                checkedTrackColor = Color.LightGray,
+                                checkedThumbColor = Color.Black,
+                            )
                         )
                     }
 
@@ -883,7 +1038,10 @@ fun SettingsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("알림 시간", style = MaterialTheme.typography.titleMedium)
+                            Text("알림 시간",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Black
+                            )
 
                             Row(
                                 horizontalArrangement = Arrangement.End,
@@ -910,7 +1068,7 @@ fun SettingsDialog(
                                                 Text(
                                                     text = String.format("%02d", hour),
                                                     style = MaterialTheme.typography.titleLarge,
-                                                    color = if (hour == selectedHour) MaterialTheme.colorScheme.primary else Color.Black
+                                                    color = if (hour == selectedHour) Color.Black else Color.Gray
                                                 )
                                             }
                                         }
@@ -938,7 +1096,7 @@ fun SettingsDialog(
                                                 Text(
                                                     text = String.format("%02d", minute),
                                                     style = MaterialTheme.typography.titleLarge,
-                                                    color = if (minute == selectedMinute) MaterialTheme.colorScheme.primary else Color.Black
+                                                    color = if (minute == selectedMinute) Color.Black else Color.Gray
                                                 )
                                             }
                                         }
@@ -954,7 +1112,13 @@ fun SettingsDialog(
                     onClick = {
                         onTimeChange(selectedHour, selectedMinute)
                         onDismiss()
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.DarkGray
+                    )
                 ) {
                     Text("확인")
                 }

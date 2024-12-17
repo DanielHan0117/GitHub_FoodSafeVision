@@ -166,7 +166,7 @@ class MainActivity : ComponentActivity() {
                                 expirationDate = null
                                 showDateDialog = false
                                 navController.navigate("foodListScreen") {
-                                    popUpTo("foodScanner") { inclusive = true }
+                                    popUpTo("foodListScreen") { inclusive = true }
                                 }
                             }
                         )
@@ -198,7 +198,7 @@ class MainActivity : ComponentActivity() {
                                 expirationDate = null
                                 showDateDialog = false
                                 navController.navigate("foodListScreen") {
-                                    popUpTo("foodScanner") { inclusive = true }
+                                    popUpTo("foodListScreen") { inclusive = true }
                                 }
                             }
                         )
@@ -217,7 +217,7 @@ class MainActivity : ComponentActivity() {
                                 expirationDate = null
                                 showDateDialog = false
                                 navController.navigate("foodScanner") {
-                                    popUpTo("registerFood") { inclusive = true }
+                                    popUpTo("foodScanner") { inclusive = true }
                                 }
                             },
                             onSaveComplete = {
